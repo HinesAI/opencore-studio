@@ -41,6 +41,24 @@ First launch seeds Application Support, then asks which OpenCore version to appl
 | `macos-native/main.swift` | AppKit + WKWebView host |
 | `build-macos-native.sh` | Sync into the `.app` and compile Swift |
 
+## Credits / third-party
+
+OpenCore Studio is the GUI, hardware wizard, plist import/export, and EFI/USB assembly flow. It is **not** OpenCore and does not replace it.
+
+Upstream projects this app ships, downloads, or follows:
+
+| Project | Who | How Studio uses it |
+| --- | --- | --- |
+| [OpenCore](https://github.com/acidanthera/OpenCorePkg) and [Sample.plist](https://github.com/acidanthera/OpenCorePkg) | [Acidanthera](https://github.com/acidanthera) | Bundled Sample schema; RELEASE zip cached when you pick a version or build EFI (BSD 3-Clause) |
+| Lilu, VirtualSMC, WhateverGreen, AppleALC, IntelMausi, NVMeFix, and other Acidanthera kexts | Acidanthera | Downloaded from their GitHub releases when you build EFI |
+| [AMD Vanilla](https://github.com/AMD-OSX/AMD_Vanilla) | AMD-OSX / community | Kernel patches in `data/amd_patches.plist` for Ryzen configs |
+| [OcBinaryData](https://github.com/acidanthera/OcBinaryData) | Acidanthera | Resources fetched when assembling EFI |
+| Ethernet, Wi-Fi, USB, and Nooted kexts | Mieze, OpenIntelWireless, USBToolBox, ChefKissInc, and others listed in `data/kexts.json` | Downloaded from each author’s GitHub releases |
+| [OpenCore Install Guide](https://dortania.github.io/OpenCore-Install-Guide/) | [Dortania](https://github.com/dortania) | Quirk / kext / profile recommendations follow their docs |
+| macOS `InstallAssistant.pkg` catalog | Apple | Public sucatalog only; installers are Apple’s |
+
+Those authors keep their copyrights and licenses. Keep their notices if you redistribute files they published. Issues with OpenCore or a kext belong on that project’s tracker, not here.
+
 ## Notes
 
 - Built `.app` bundles, EFI output, and download caches are not in git. Rebuild locally.

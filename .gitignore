@@ -10,6 +10,7 @@ venv/
 # Built app, archives, and generated EFI
 macos-dist/
 dist/
+releases/
 *.tar.gz
 *.zip
 
