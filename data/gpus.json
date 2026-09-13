@@ -1,0 +1,197 @@
+{
+  "version": "1.0.0",
+  "gpus": [
+    {
+      "id": "intel_uhd_630",
+      "name": "Intel UHD 630 / HD 630 (Coffee / Comet / Kaby)",
+      "family": "Intel Gen9/9.5",
+      "vendor": "Intel",
+      "support": "native",
+      "examples": ["UHD 630", "HD 630", "UHD 610"],
+      "aliases": ["uhd630", "hd630"],
+      "bootArgs": [],
+      "kexts": ["WhateverGreen"],
+      "avoidKexts": ["NootedRed", "NootRX"],
+      "notes": "Works on 7th–10th Gen desktops with a matching ig-platform-id from the CPU profile."
+    },
+    {
+      "id": "intel_hd_5x00",
+      "name": "Intel HD 4600 / 530 (Haswell / Skylake)",
+      "family": "Intel Gen7.5/9",
+      "vendor": "Intel",
+      "support": "native",
+      "examples": ["HD 4600", "HD 530", "HD 5500"],
+      "bootArgs": [],
+      "kexts": ["WhateverGreen"],
+      "avoidKexts": ["NootedRed", "NootRX"],
+      "notes": "Haswell HD 4600 needs the desktop framebuffer from the Haswell profile. Skylake HD 530 is broadly supported."
+    },
+    {
+      "id": "intel_uhd_7x0",
+      "name": "Intel UHD 730 / 750 / 770 (12th+)",
+      "family": "Intel Xe iGPU",
+      "vendor": "Intel",
+      "support": "unsupported",
+      "examples": ["UHD 730", "UHD 750", "UHD 770"],
+      "bootArgs": [
+        {"arg": "-wegnoigpu", "required": true, "reason": "Disable the unsupported iGPU so a discrete AMD card can drive the display."}
+      ],
+      "kexts": ["WhateverGreen"],
+      "avoidKexts": ["NootedRed"],
+      "notes": "No native macOS drivers. Pair with a supported AMD dGPU."
+    },
+    {
+      "id": "amd_polaris",
+      "name": "AMD RX 460 / 470 / 480 / 570 / 580 / 590 (Polaris)",
+      "family": "Polaris",
+      "vendor": "AMD",
+      "support": "native",
+      "examples": ["RX 460", "RX 470", "RX 480", "RX 570", "RX 580", "RX 590"],
+      "aliases": ["580", "570", "480", "polaris"],
+      "bootArgs": [],
+      "kexts": ["WhateverGreen"],
+      "avoidKexts": ["NootedRed", "NootRX"],
+      "notes": "Most reliable AMD family in macOS. No extra boot-args required for typical desktops."
+    },
+    {
+      "id": "amd_vega",
+      "name": "AMD Vega 56 / 64 / VII / Frontier",
+      "family": "Vega",
+      "vendor": "AMD",
+      "support": "native",
+      "examples": ["Vega 56", "Vega 64", "Radeon VII", "Frontier Edition"],
+      "aliases": ["vega56", "vega64", "vii"],
+      "bootArgs": [],
+      "kexts": ["WhateverGreen"],
+      "avoidKexts": ["NootedRed", "NootRX"],
+      "notes": "Native. Some boards need agdpmod=pikera if the display blanks after the picker."
+    },
+    {
+      "id": "amd_navi10",
+      "name": "AMD RX 5500 / 5600 / 5700 (Navi 10 / 14)",
+      "family": "Navi 10/14",
+      "vendor": "AMD",
+      "support": "native",
+      "examples": ["RX 5500 XT", "RX 5600 XT", "RX 5700", "RX 5700 XT"],
+      "aliases": ["5700xt", "5700", "5600xt", "5500xt"],
+      "bootArgs": [
+        {"arg": "agdpmod=pikera", "required": true, "reason": "Bypasses AGDP board-id checks on Navi so the display initializes."}
+      ],
+      "kexts": ["WhateverGreen"],
+      "avoidKexts": ["NootedRed", "NootRX"],
+      "notes": "Supported through Sequoia with WhateverGreen + agdpmod=pikera."
+    },
+    {
+      "id": "amd_navi21",
+      "name": "AMD RX 6600 / 6800 / 6900 (Navi 21 / 23)",
+      "family": "Navi 21/23",
+      "vendor": "AMD",
+      "support": "native",
+      "examples": ["RX 6600", "RX 6600 XT", "RX 6650 XT", "RX 6800", "RX 6800 XT", "RX 6900 XT", "RX 6950 XT"],
+      "aliases": ["6600", "6800xt", "6900xt", "6950xt"],
+      "bootArgs": [
+        {"arg": "agdpmod=pikera", "required": true, "reason": "Required for Navi 21/23 to get past the Apple board-id check."}
+      ],
+      "kexts": ["WhateverGreen"],
+      "avoidKexts": ["NootedRed", "NootRX"],
+      "notes": "Best current discrete choice. Do not use NootRX on these cards."
+    },
+    {
+      "id": "amd_navi22",
+      "name": "AMD RX 6700 / 6750 XT (Navi 22)",
+      "family": "Navi 22",
+      "vendor": "AMD",
+      "support": "community",
+      "examples": ["RX 6700", "RX 6700 XT", "RX 6750 XT"],
+      "aliases": ["6700xt", "6750xt", "6700"],
+      "bootArgs": [
+        {"arg": "agdpmod=pikera", "required": false, "reason": "Sometimes still needed depending on connector / WhateverGreen usage."}
+      ],
+      "kexts": ["NootRX"],
+      "avoidKexts": ["WhateverGreen", "NootedRed"],
+      "notes": "Needs NootRX. WhateverGreen conflicts and must stay off."
+    },
+    {
+      "id": "amd_navi24",
+      "name": "AMD RX 6400 / 6500 XT (Navi 24)",
+      "family": "Navi 24",
+      "vendor": "AMD",
+      "support": "unsupported",
+      "examples": ["RX 6400", "RX 6500 XT"],
+      "aliases": ["6500xt", "6400"],
+      "bootArgs": [],
+      "kexts": [],
+      "avoidKexts": [],
+      "notes": "No usable macOS acceleration path. Pick another GPU."
+    },
+    {
+      "id": "amd_rdna3",
+      "name": "AMD RX 7600 / 7700 / 7800 / 7900 (RDNA3)",
+      "family": "RDNA3",
+      "vendor": "AMD",
+      "support": "unsupported",
+      "examples": ["RX 7600", "RX 7700 XT", "RX 7800 XT", "RX 7900 XT", "RX 7900 XTX"],
+      "aliases": ["7900xtx", "7900xt", "7800xt", "7700xt"],
+      "bootArgs": [],
+      "kexts": [],
+      "avoidKexts": [],
+      "notes": "No OpenCore/macOS support. Do not target these cards."
+    },
+    {
+      "id": "amd_apu",
+      "name": "AMD Ryzen APU (Vega / RDNA2 iGPU)",
+      "family": "AMD APU",
+      "vendor": "AMD",
+      "support": "community",
+      "examples": ["Vega 8", "Vega 11", "660M", "680M", "780M"],
+      "aliases": ["nootedred", "680m", "vega8"],
+      "bootArgs": [
+        {"arg": "npci=0x2000", "required": false, "reason": "Common AM4/AM5 PCI enumeration workaround."}
+      ],
+      "kexts": ["NootedRed"],
+      "avoidKexts": ["WhateverGreen", "NootRX"],
+      "notes": "Use NootedRed and keep WhateverGreen disabled."
+    },
+    {
+      "id": "nvidia_kepler",
+      "name": "NVIDIA Kepler (GTX 650–780 / Titan)",
+      "family": "Kepler",
+      "vendor": "NVIDIA",
+      "support": "legacy",
+      "examples": ["GTX 650", "GTX 660", "GTX 680", "GTX 770", "GTX 780", "Tesla K20"],
+      "aliases": ["gtx680", "gtx770", "kepler"],
+      "bootArgs": [],
+      "kexts": ["WhateverGreen"],
+      "avoidKexts": ["NootedRed", "NootRX"],
+      "notes": "Native only through High Sierra (10.13). Newer macOS dropped Kepler."
+    },
+    {
+      "id": "nvidia_web",
+      "name": "NVIDIA Maxwell / Pascal (GTX 900 / 10 series)",
+      "family": "Maxwell/Pascal",
+      "vendor": "NVIDIA",
+      "support": "legacy",
+      "examples": ["GTX 970", "GTX 980", "GTX 1060", "GTX 1070", "GTX 1080", "Titan X"],
+      "aliases": ["gtx1080", "gtx1070", "gtx1060", "pascal"],
+      "bootArgs": [
+        {"arg": "nvda_drv_vrl=1", "required": false, "reason": "Used with NVIDIA Web Drivers on High Sierra / Mojave only."}
+      ],
+      "kexts": [],
+      "avoidKexts": [],
+      "notes": "Web Drivers stop at Mojave. Not a Sequoia/Sonoma target."
+    },
+    {
+      "id": "nvidia_modern",
+      "name": "NVIDIA Turing / Ampere / Ada (RTX 20/30/40)",
+      "family": "Turing+",
+      "vendor": "NVIDIA",
+      "support": "unsupported",
+      "examples": ["RTX 2060", "RTX 3060", "RTX 3070", "RTX 3080", "RTX 4070", "RTX 4090"],
+      "aliases": ["rtx3080", "rtx3060", "rtx4090"],
+      "bootArgs": [],
+      "kexts": [],
+      "avoidKexts": [],
+      "notes": "No macOS drivers. Use AMD for any current target OS."
+    }
+  ]
+}

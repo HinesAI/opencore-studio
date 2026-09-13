@@ -1,0 +1,96 @@
+{
+  "id": "intel_comet_lake",
+  "name": "Intel Comet Lake (10th Gen Desktop)",
+  "platform": "desktop",
+  "cpuFamily": "Intel 10th Gen (Core i3/i5/i7/i9 10xxx)",
+  "examples": ["i5-10400", "i7-10700K", "i9-10900K"],
+  "searchTerms": ["comet", "lga1200", "10th gen"],
+  "chipsets": ["Z490", "B460", "H470", "H410", "W480"],
+  "description": "Desktop systems using Intel 10th Gen Core processors on Socket LGA1200. Outstanding macOS compatibility with native UHD 630 iGPU support.",
+  "recommendedSmbios": {
+    "igpu_only": "iMac20,1",
+    "igpu_dgpu": "iMac20,1",
+    "i9_cpu": "iMac20,2",
+    "dgpu_only": "iMacPro1,1"
+  },
+  "supportedMacOs": {
+    "min": "macOS 10.15 Catalina",
+    "max": "macOS 15 Sequoia (Native or OCLP)"
+  },
+  "mandatorySsdt": [
+    { "name": "SSDT-PLUG.aml", "reason": "Enables native X86PlatformPlugin CPU power management on LGA1200." },
+    { "name": "SSDT-EC-USBX.aml", "reason": "Creates fake Embedded Controller (EC) device and sets USB power properties." },
+    { "name": "SSDT-AWAC.aml", "reason": "Disables RTC legacy AWAC timer and forces standard RTC clock." },
+    { "name": "SSDT-RHUB.aml", "reason": "Resets USB RHUB controller on ASUS and Gigabyte 400-series boards so ports enumerate." }
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": true,
+    "DisableSingleUser": false,
+    "DisableVariableWrite": false,
+    "DiscardHibernateMap": false,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "FixupAppleEfiImages": false,
+    "ForceBooterSignature": false,
+    "ForceExitBootServices": false,
+    "ProtectMemoryRegions": false,
+    "ProtectSecureBoot": false,
+    "ProtectUefiServices": true,
+    "ProvideCustomSlide": true,
+    "ProvideMaxSlide": 0,
+    "RebuildAppleMemoryMap": true,
+    "ResizeAppleGpuBars": 0,
+    "SetupVirtualMap": false,
+    "SignalAppleOS": false,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleCpuPmCfgLock": false,
+    "AppleXcpmCfgLock": true,
+    "AppleXcpmExtraMsrs": false,
+    "AppleXcpmForceBoost": false,
+    "CustomPciSerialDevice": false,
+    "CustomSMBIOSGuid": false,
+    "DisableIoMapper": true,
+    "DisableIoMapperMapping": false,
+    "DisableLinkeditJettison": true,
+    "DisableRtcChecksum": false,
+    "ExtendBTFeatureFlags": false,
+    "ExternalDiskIcons": false,
+    "ForceAquantiaEthernet": false,
+    "ForceSecureBootScheme": false,
+    "IncreasePciBarSize": false,
+    "LapicKernelPanic": false,
+    "LegacyCommpage": false,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true,
+    "ProvideCurrentCpuInfo": false,
+    "SetApfsTrimTimeout": -1,
+    "ThirdPartyDrives": false,
+    "XhciPortLimit": false
+  },
+  "bootArgs": ["-v", "debug=0x100", "keepsyms=1", "alcid=1"],
+  "gpuGuidance": {
+    "igpu": {
+      "supported": true,
+      "name": "Intel UHD 630",
+      "deviceProperties": {
+        "PciRoot(0x0)/Pci(0x2,0x0)": {
+          "AAPL,ig-platform-id": "07009B3E",
+          "framebuffer-patch-enable": "01000000",
+          "framebuffer-stolenmem": "00003001"
+        }
+      }
+    },
+    "amdDgpu": {
+      "navi10_21_note": "If using AMD Radeon RX 5000/6000 series (5700 XT, 6600, 6800, 6900 XT), add 'agdpmod=pikera' to boot-args.",
+      "unsupportedWarning": "AMD RX 6700 XT (Navi 22) requires NootRX kext. RX 6500 XT (Navi 24) and RX 7000 series (RDNA3) have zero macOS support."
+    }
+  },
+  "biosSettings": {
+    "disable": ["Fast Boot", "Secure Boot", "VT-d (or enable DisableIoMapper)", "CSM (Legacy Mode)", "Intel SGX", "CFG Lock (MSR 0xE2)"],
+    "enable": ["VT-x", "Above 4G Decoding", "Hyper-Threading", "XHCI Hand-off", "OS Type: Windows 8.1/10/Other UEFI", "SATA Mode: AHCI", "DVMT Pre-Allocated: 64MB+"]
+  }
+}

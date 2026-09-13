@@ -1,0 +1,42 @@
+{
+  "id": "intel_xeon_w_cascade",
+  "name": "Intel Xeon W-2200 (Cascade Lake-W / C422)",
+  "platform": "workstation",
+  "architecture": "Intel",
+  "cpuFamily": "Intel Xeon W-2223 through W-2295 (Cascade Lake-W)",
+  "chipsets": ["C422"],
+  "examples": ["W-2223", "W-2235", "W-2245", "W-2255", "W-2275", "W-2295"],
+  "searchTerms": ["xeon", "w-2245", "cascade-w", "lga2066", "c422"],
+  "description": "Refresh of the LGA 2066 Xeon W workstation line. Same no-iGPU rule as W-2100; prefer MacPro7,1 or iMacPro1,1.",
+  "recommendedSmbios": {"default": "MacPro7,1", "alternative": "iMacPro1,1"},
+  "supportedMacOs": {"min": "macOS 10.15 Catalina", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
+    {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."},
+    {"name": "SSDT-UNC.aml", "reason": "Uncore PCI bridge fix on C422."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "ProtectUefiServices": true,
+    "ProvideCustomSlide": true,
+    "RebuildAppleMemoryMap": true,
+    "SetupVirtualMap": true,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleXcpmCfgLock": true,
+    "AppleXcpmExtraMsrs": true,
+    "DisableIoMapper": true,
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1",
+  "gpuGuidance": {
+    "igpu": {"supported": false, "name": "None", "warning": "No iGPU. Select a supported AMD dGPU."}
+  }
+}

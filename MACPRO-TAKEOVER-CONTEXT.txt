@@ -1,0 +1,153 @@
+================================================================================
+OPENCORE STUDIO — MACPRO HANDOFF & CONTEXT SPECIFICATION
+================================================================================
+Generated for: User Mac Pro Workstation
+Architecture Target: macOS 10.15 Catalina through macOS 15 Sequoia (Apple Silicon & Intel)
+Bundle ID: com.opencorestudio.app
+Project Repository / Directory: opencore-studio/
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE OVERVIEW & MISSION
+--------------------------------------------------------------------------------
+OpenCore Studio is an automated OpenCore EFI and config.plist creation and tuning
+platform. Unlike generic XML tree editors (e.g. ProperTree) or black-box configurators
+that frequently corrupt plists or violate ACPI/kext invariants, OpenCore Studio:
+  - Generates 100% compliant Apple XML config.plist files directly from upstream
+    Acidanthera Sample.plist schemas.
+  - Features a zero-guesswork Hardware Wizard for Intel (Comet Lake, Alder/Raptor Lake,
+    Coffee Lake), AMD Ryzen (Zen 3/4/AM4/AM5), and Proxmox/KVM virtual machines.
+  - Enforces strict topological kext ordering (Lilu at index 0, VirtualSMC ahead of
+    all sensor plugins, conflict isolation e.g. WhateverGreen vs NootedRed).
+  - Automatically calculates and hex-patches AMD physical CPU core counts across
+    all four kernel patches ('algrey - Force cpuid_cores_per_package').
+  - Generates authentic SMBIOS identities (Serial, MLB, UUID, ROM) compliant with
+    AppleServices (iMessage, FaceTime, iCloud).
+  - Includes a Dynamic Guidance Engine and Custom Repository Manager to pull new
+    hardware specs and kext manifests without recompiling the app.
+
+--------------------------------------------------------------------------------
+2. PROJECT LAYOUT ON DISK
+--------------------------------------------------------------------------------
+opencore-studio/
+├── MACPRO-TAKEOVER-CONTEXT.txt     <-- [THIS CONTEXT FILE]
+├── README-MACPRO.md                 <-- Markdown quick-start instructions
+├── build-macos-native.sh            <-- Compiles native Cocoa/WebKit Mach-O binary
+├── run-studio.sh                    <-- Standalone terminal launcher
+├── app.py                           <-- Multi-threaded Python server & REST API
+├── engine/                          <-- Core business logic
+│   ├── plist_builder.py             <-- Assembles & serializes Apple XML plist
+│   ├── validator.py                 <-- Pre-flight sanity checks & error remedies
+│   ├── kext_manager.py              <-- Sorter & custom kext repository manager
+│   ├── amd_patcher.py               <-- Hex core-count injector for AMD Vanilla
+│   ├── smbios.py                    <-- GenSMBIOS-style serial & MLB generator
+│   └── profiles.py                  <-- Hardware profile loader & remote importer
+├── data/                            <-- Schema & definitions
+│   ├── Sample.plist                 <-- Canonical upstream OpenCore master schema
+│   ├── amd_patches.plist            <-- Official AMD Vanilla kernel patches
+│   ├── kexts.json                   <-- 26 curated kexts with priorities & repos
+│   ├── repos.json                   <-- Upstream repo links & custom repo config
+│   └── profiles/                    <-- Hardware profiles (JSON)
+│       ├── intel_comet_lake.json
+│       ├── intel_alder_raptor.json
+│       ├── intel_coffee_lake.json
+│       ├── amd_ryzen_zen3_4.json
+│       └── proxmox_kvm_guest.json
+├── static/                          <-- Web UI Assets
+│   ├── index.html                   <-- Modern dark-mode GUI
+│   ├── studio.css                   <-- Xcode dark theme styling
+│   └── studio.js                    <-- Reactive client logic & live API bindings
+├── macos-native/
+│   └── main.swift                   <-- Native AppKit / WKWebView application code
+└── macos-dist/
+    └── OpenCore Studio.app/         <-- macOS Application Bundle
+        └── Contents/
+            ├── Info.plist           <-- Bundle metadata & permissions
+            ├── PkgInfo              <-- APPL???? signature
+            ├── MacOS/
+            │   └── OpenCoreStudio   <-- Application launcher script
+            └── Resources/
+                ├── AppIcon.icns     <-- High-resolution Apple icon
+                ├── AppIcon.png
+                └── app/             <-- Embedded backend, engine, and frontend
+
+--------------------------------------------------------------------------------
+3. RUNNING & BUILDING ON MAC PRO
+--------------------------------------------------------------------------------
+
+OPTION A: RUN OUT-OF-THE-BOX (NO COMPILATION REQUIRED)
+  1. Unpack the tarball:
+       tar -xzvf opencore-studio-macpro.tar.gz
+       cd opencore-studio
+  2. Launch the app directly:
+       open "macos-dist/OpenCore Studio.app"
+  3. Or copy it to your Applications folder:
+       cp -R "macos-dist/OpenCore Studio.app" /Applications/
+       open -a "OpenCore Studio"
+
+OPTION B: COMPILE 100% NATIVE COCOA / WEBKIT MACH-O BINARY
+  1. Open Terminal in the project directory:
+       cd opencore-studio
+  2. Run the native build script:
+       ./build-macos-native.sh
+     This compiles `macos-native/main.swift` using Apple's built-in `swiftc`:
+       swiftc -O -framework Cocoa -framework WebKit \
+         macos-native/main.swift \
+         -o "macos-dist/OpenCore Studio.app/Contents/MacOS/OpenCoreStudioNative"
+     and automatically signs it ad-hoc with `codesign`.
+  3. Now when double-clicked, `OpenCore Studio.app` runs as a native macOS window
+     with dark mode, native window chrome, traffic light buttons, and macOS menus!
+
+OPTION C: CREATE A DRAGGABLE DMG INSTALLER
+  Run on macOS Terminal:
+    hdiutil create -volname "OpenCore Studio" \
+      -srcfolder "macos-dist/OpenCore Studio.app" \
+      -ov -format UDZO "OpenCore-Studio-Installer.dmg"
+
+--------------------------------------------------------------------------------
+4. INSTRUCTIONS FOR AN AI AGENT OR DEVELOPER TAKING OVER ON MAC PRO
+--------------------------------------------------------------------------------
+If you are an AI assistant (Cursor, Codex, Claude, ChatGPT, etc.) running on the
+Mac Pro:
+  1. READ THIS FILE FIRST to understand the system architecture.
+  2. The application requires zero third-party Python packages (`pip`). It runs on
+     the macOS system Python 3 (`/usr/bin/python3`) and standard libraries (`plistlib`,
+     `http.server`, `urllib`, `json`, `uuid`, `copy`).
+  3. REST API ENDPOINTS provided by `app.py`:
+       GET  /api/profiles           -> Returns all hardware profiles
+       GET  /api/profiles/<id>      -> Returns full hardware profile
+       GET  /api/kexts              -> Returns curated kext catalog
+       GET  /api/repos              -> Returns official & custom repositories
+       POST /api/generate-smbios    -> Body: {"model": "iMac20,1"} -> Generates serials
+       POST /api/build-plist        -> Assembles config.plist, returns XML + validation
+       POST /api/validate           -> Lints arbitrary config dictionary
+       POST /api/repos              -> Registers custom kext repository
+       POST /api/profiles/import    -> Imports hardware profile from URL or raw JSON
+       GET  /api/schema             -> Active Sample.plist tag + quirk defaults
+       GET  /api/updates/status     -> Local update state (add ?refresh=1 to query GitHub)
+       POST /api/updates/apply      -> Body: {"components":["opencore","amd","kexts"],"opencoreTag":"1.0.7"}
+       POST /api/updates/rollback   -> Restores newest backups of Sample.plist / AMD patches / kexts.json
+       GET  /api/gpus               -> GPU family catalog (args, kexts, support)
+       GET  /api/hardware/match     -> ?cpu=W-2133 and/or ?gpu=RX+6800+XT
+       POST /api/gpu/apply-plan     -> Boot-arg / kext changes for a GPU family
+       POST /api/import-plist       -> Reload a config.plist into Studio edit state
+       POST /api/efi/build          -> Assemble EFI/ (OpenCore + kexts + SSDTs + config.plist)
+       GET  /api/efi/status         -> Last EFI build manifest
+       GET  /api/efi/download       -> OpenCore-Studio-EFI.zip
+       GET  /api/efi/targets        -> External USB volumes and whole disks
+       POST /api/efi/copy           -> Copy EFI onto a mounted volume
+       POST /api/efi/prepare        -> Erase external disk (confirm=ERASE) then copy EFI
+       GET  /api/macos/catalog      -> Monterey+ full installers from Apple sucatalog; badges local softwareupdate hits
+       POST /api/macos/download     -> Start/resume InstallAssistant.pkg for selected id
+       GET  /api/macos/download/status -> In-flight progress + cached pkgs
+       POST /api/macos/download/cancel -> Stop current download; keep .part for resume
+       POST /api/macos/download/remove -> Delete a leftover partial (.part) only
+  4. PLIST GENERATION INVARIANT RULES (`engine/plist_builder.py`):
+       - ACPI SSDTs must be appended to `ACPI -> Add`.
+       - Kexts must be topologically sorted using `kext_manager.build_kernel_add_entries`.
+       - For AMD profiles, physical core count must be patched using `amd_patcher.py`.
+       - SMBIOS must populate `PlatformInfo -> Generic` (`SystemProductName`, `SystemSerialNumber`,
+         `MLB`, `SystemUUID`, `ROM` as 6 hex bytes).
+  5. TESTING:
+       python3 app.py --port 8088
+       curl -s http://127.0.0.1:8088/api/profiles | grep success
+================================================================================

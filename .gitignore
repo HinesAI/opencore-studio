@@ -1,0 +1,20 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+*.part
+
+# Built app, archives, and generated EFI
+macos-dist/
+dist/
+*.tar.gz
+*.zip
+
+# Runtime / machine-local
+data/cache/
+data/builds/
+data/backups/
+data/first-run.json

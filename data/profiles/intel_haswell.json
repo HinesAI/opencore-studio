@@ -1,0 +1,34 @@
+{
+  "id": "intel_haswell",
+  "name": "Intel Haswell (4th Gen Desktop)",
+  "platform": "desktop",
+  "architecture": "Intel",
+  "cpuFamily": "Intel 4th Gen (Core i3/i5/i7 4xxx)",
+  "chipsets": ["Z87", "Z97", "H87", "H97", "B85", "B97"],
+  "examples": ["i5-4460", "i5-4690K", "i7-4770K", "i7-4790K"],
+  "searchTerms": ["haswell", "lga1150", "4th gen"],
+  "description": "LGA 1150 desktop. HD 4600 iGPU is usable. Older but still a valid OpenCore target through Sequoia with a dGPU or HD 4600.",
+  "recommendedSmbios": {"igpu_only": "iMac15,1", "dgpu_only": "iMac15,1"},
+  "supportedMacOs": {"min": "macOS 10.13 High Sierra", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
+    {"name": "SSDT-EC.aml", "reason": "Fake Embedded Controller on desktops that lack a usable EC."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": true,
+    "ProvideCustomSlide": true,
+    "SetupVirtualMap": true
+  },
+  "kernelQuirks": {
+    "AppleCpuPmCfgLock": true,
+    "AppleXcpmCfgLock": true,
+    "DisableIoMapper": true,
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1"
+}

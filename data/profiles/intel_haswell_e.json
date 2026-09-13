@@ -1,0 +1,35 @@
+{
+  "id": "intel_haswell_e",
+  "name": "Intel Haswell-E / Broadwell-E (HEDT)",
+  "platform": "desktop",
+  "architecture": "Intel",
+  "cpuFamily": "Core i7 5xxxX / 6xxxX and Xeon E5 v3/v4",
+  "chipsets": ["X99"],
+  "examples": ["i7-5820K", "i7-5930K", "i7-6800K", "E5-1650 v3"],
+  "searchTerms": ["x99", "haswell-e", "broadwell-e", "hedt"],
+  "description": "X99 HEDT / Xeon E5. No consumer iGPU. Use iMacPro1,1 and a discrete GPU.",
+  "recommendedSmbios": {"default": "iMacPro1,1"},
+  "supportedMacOs": {"min": "macOS 10.13 High Sierra", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
+    {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": true,
+    "ProvideCustomSlide": true,
+    "SetupVirtualMap": true
+  },
+  "kernelQuirks": {
+    "AppleCpuPmCfgLock": true,
+    "AppleXcpmCfgLock": true,
+    "AppleXcpmExtraMsrs": true,
+    "DisableIoMapper": true,
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1"
+}

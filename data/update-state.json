@@ -1,0 +1,20 @@
+{
+  "opencore": {
+    "tag": "bundled",
+    "source": "bundled",
+    "sampleSha256": "a58ca93ee0e2ac199469b696606ba96bfaafb0a7902e57de6d557548a0c96a58",
+    "appliedAt": null,
+    "notes": ""
+  },
+  "amdVanilla": {
+    "ref": "bundled",
+    "sha256": "4bc820109b3d020c3c547fa23c49e0098e4f4a2c625ed6184dd54e390e84e1ab",
+    "appliedAt": null
+  },
+  "kexts": {
+    "lastChecked": null,
+    "lastApplied": null
+  },
+  "lastCheck": null,
+  "canRollback": false
+}

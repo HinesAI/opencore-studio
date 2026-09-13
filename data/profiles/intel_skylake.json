@@ -1,0 +1,33 @@
+{
+  "id": "intel_skylake",
+  "name": "Intel Skylake (6th Gen Desktop)",
+  "platform": "desktop",
+  "architecture": "Intel",
+  "cpuFamily": "Intel 6th Gen (Core i3/i5/i7 6xxx)",
+  "chipsets": ["Z170", "H170", "B150", "H110"],
+  "examples": ["i5-6500", "i5-6600K", "i7-6700K"],
+  "searchTerms": ["skylake", "lga1151", "6th gen"],
+  "description": "LGA 1151 v1. HD 530 iGPU is supported. iMac17,1 is the usual SMBIOS.",
+  "recommendedSmbios": {"igpu_only": "iMac17,1", "dgpu_only": "iMac17,1"},
+  "supportedMacOs": {"min": "macOS 10.13 High Sierra", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
+    {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": true,
+    "ProvideCustomSlide": true,
+    "SetupVirtualMap": true
+  },
+  "kernelQuirks": {
+    "AppleXcpmCfgLock": true,
+    "DisableIoMapper": true,
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1"
+}

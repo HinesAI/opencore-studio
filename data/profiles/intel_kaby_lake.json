@@ -1,0 +1,33 @@
+{
+  "id": "intel_kaby_lake",
+  "name": "Intel Kaby Lake (7th Gen Desktop)",
+  "platform": "desktop",
+  "architecture": "Intel",
+  "cpuFamily": "Intel 7th Gen (Core i3/i5/i7 7xxx)",
+  "chipsets": ["Z270", "H270", "B250"],
+  "examples": ["i5-7400", "i5-7600K", "i7-7700K"],
+  "searchTerms": ["kaby", "lga1151", "7th gen"],
+  "description": "LGA 1151 v1 refresh. HD 630 iGPU is native. iMac18,3 is the usual SMBIOS.",
+  "recommendedSmbios": {"igpu_only": "iMac18,3", "dgpu_only": "iMac18,3"},
+  "supportedMacOs": {"min": "macOS 10.13 High Sierra", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
+    {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": true,
+    "ProvideCustomSlide": true,
+    "SetupVirtualMap": true
+  },
+  "kernelQuirks": {
+    "AppleXcpmCfgLock": true,
+    "DisableIoMapper": true,
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1"
+}

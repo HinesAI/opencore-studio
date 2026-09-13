@@ -1,0 +1,38 @@
+{
+  "id": "intel_rocket_lake",
+  "name": "Intel Rocket Lake (11th Gen Desktop)",
+  "platform": "desktop",
+  "architecture": "Intel",
+  "cpuFamily": "Intel 11th Gen (Core i5/i7/i9 11xxx)",
+  "chipsets": ["Z590", "B560", "H510", "H570"],
+  "examples": ["i5-11400", "i7-11700K", "i9-11900K"],
+  "searchTerms": ["rocket", "lga1200", "11th gen"],
+  "description": "LGA 1200 refresh. UHD 750 iGPU is not usable in macOS. Requires a supported AMD dGPU.",
+  "recommendedSmbios": {"default": "MacPro7,1", "alternative": "iMacPro1,1"},
+  "supportedMacOs": {"min": "macOS 11 Big Sur", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
+    {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."},
+    {"name": "SSDT-AWAC.aml", "reason": "Legacy RTC on 500-series boards."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "ProtectUefiServices": true,
+    "ProvideCustomSlide": true,
+    "RebuildAppleMemoryMap": true,
+    "SetupVirtualMap": false,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleXcpmCfgLock": true,
+    "DisableIoMapper": true,
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1 -wegnoigpu"
+}

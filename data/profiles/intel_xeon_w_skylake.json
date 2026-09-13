@@ -1,0 +1,46 @@
+{
+  "id": "intel_xeon_w_skylake",
+  "name": "Intel Xeon W-2100 (Skylake-W / C422)",
+  "platform": "workstation",
+  "architecture": "Intel",
+  "cpuFamily": "Intel Xeon W-2123 through W-2195 (Skylake-W)",
+  "chipsets": ["C422"],
+  "examples": ["W-2123", "W-2133", "W-2145", "W-2155", "W-2175", "W-2195"],
+  "searchTerms": ["xeon", "w-2133", "skylake-w", "lga2066", "c422", "workstation"],
+  "description": "LGA 2066 Xeon W workstation CPUs. No iGPU — a supported AMD dGPU is required. This is the bucket for W-2133.",
+  "recommendedSmbios": {"default": "iMacPro1,1", "alternative": "MacPro7,1"},
+  "supportedMacOs": {"min": "macOS 10.13 High Sierra", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-PLUG.aml", "reason": "X86PlatformPlugin CPU power management for ACPI Processor objects."},
+    {"name": "SSDT-EC-USBX.aml", "reason": "Fake Embedded Controller plus USB power properties."},
+    {"name": "SSDT-UNC.aml", "reason": "Fixes uncore PCI bridges on many C422 / X299 boards that otherwise stall boot."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "ProtectUefiServices": true,
+    "ProvideCustomSlide": true,
+    "RebuildAppleMemoryMap": true,
+    "SetupVirtualMap": true,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleXcpmCfgLock": true,
+    "AppleXcpmExtraMsrs": true,
+    "DisableIoMapper": true,
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1",
+  "gpuGuidance": {
+    "igpu": {"supported": false, "name": "None", "warning": "Xeon W-2100 has no iGPU. Choose an AMD dGPU family below."}
+  },
+  "biosSettings": {
+    "disable": ["Fast Boot", "Secure Boot", "CSM", "CFG Lock"],
+    "enable": ["VT-x", "Above 4G Decoding", "Hyper-Threading", "XHCI Hand-off", "AHCI"]
+  }
+}

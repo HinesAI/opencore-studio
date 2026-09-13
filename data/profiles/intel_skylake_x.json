@@ -1,0 +1,39 @@
+{
+  "id": "intel_skylake_x",
+  "name": "Intel Skylake-X / Cascade-X (X299 HEDT)",
+  "platform": "desktop",
+  "architecture": "Intel",
+  "cpuFamily": "Core i7/i9 7xxxX / 9xxxX / 10xxxX",
+  "chipsets": ["X299"],
+  "examples": ["i7-7800X", "i9-7900X", "i9-9900X", "i9-10900X", "i9-10980XE"],
+  "searchTerms": ["x299", "skylake-x", "cascade-x", "hedt", "lga2066"],
+  "description": "Consumer HEDT on X299. No iGPU. SSDT-UNC is commonly required. Same dGPU rules as Xeon W.",
+  "recommendedSmbios": {"default": "iMacPro1,1", "alternative": "MacPro7,1"},
+  "supportedMacOs": {"min": "macOS 10.13 High Sierra", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
+    {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."},
+    {"name": "SSDT-UNC.aml", "reason": "Required on most X299 boards to boot past PCI uncore."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "ProtectUefiServices": true,
+    "ProvideCustomSlide": true,
+    "RebuildAppleMemoryMap": true,
+    "SetupVirtualMap": true,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleXcpmCfgLock": true,
+    "AppleXcpmExtraMsrs": true,
+    "DisableIoMapper": true,
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1"
+}

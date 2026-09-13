@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenCore Studio — Next-Gen EFI & Plist Builder</title>
+  <link rel="stylesheet" href="studio.css?v=step-fit">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+  <div id="app">
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-icon"></div>
+        <div>
+          <h1 class="logo-title">OpenCore Studio</h1>
+          <p class="logo-subtitle">Automated EFI & Plist Configuration Platform</p>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <span id="oc-schema-badge" class="badge badge-pulse oc-schema-badge" title="Click or right-click to change OpenCore version">● OpenCore bundled Sample.plist</span>
+        <div id="oc-version-menu" class="oc-version-menu" hidden></div>
+        <span id="active-profile-badge" class="badge badge-accent">Profile: Loading...</span>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" id="btn-load-plist" class="btn btn-secondary">
+          <span class="icon">📂</span> Load config.plist
+        </button>
+        <input type="file" id="file-load-plist" class="file-input-hidden" accept=".plist,.xml,text/xml,application/xml">
+        <button id="btn-validate" class="btn btn-secondary">
+          <span class="icon">🔍</span> Run Diagnostics
+        </button>
+        <button id="btn-download-plist" class="btn btn-primary">
+          <span class="icon">💾</span> Export config.plist
+        </button>
+      </div>
+    </header>
+
+    <div class="studio-body">
+    <nav class="step-rail" aria-label="Build steps">
+      <div class="step-rail-label">Steps</div>
+      <div id="step-list" class="step-list"></div>
+      <div id="step-callout" class="step-callout" hidden>
+        <div id="step-callout-text" class="step-callout-text"></div>
+        <div class="step-callout-actions">
+          <button id="btn-step-next" class="btn btn-primary">Continue</button>
+          <button id="btn-step-skip" class="btn btn-secondary" hidden>Skip</button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="app-main">
+      <div id="step-banner" class="step-banner" hidden>
+        <span id="step-banner-text"></span>
+        <div class="step-banner-actions">
+          <button id="btn-step-banner-next" class="btn btn-primary">Continue</button>
+          <button id="btn-step-banner-skip" class="btn btn-secondary" hidden>Skip</button>
+        </div>
+      </div>
+
+      <!-- TAB 1: Hardware Wizard -->
+      <section id="tab-wizard" class="tab-pane active">
+        <div class="pane-header">
+          <h2>Base System & Architecture Wizard</h2>
+          <p>Type your CPU model to land on the right OpenCore bucket. Then pick a GPU family so the required boot-args and kexts are applied or offered. Load a previous config.plist anytime to keep editing.</p>
+        </div>
+
+        <div class="hw-identify">
+          <input type="text" id="cpu-search" class="input-text" placeholder="Type your CPU — e.g. W-2133, i7-10700K, 5900X">
+          <div id="cpu-match-result" class="cpu-match-result">No lookup yet. Example: W-2133 → Xeon W-2100 / C422.</div>
+        </div>
+        <div id="oc-version-callout" class="oc-version-callout" hidden>
+          <div class="oc-version-callout-title">OpenCore version for this Mac</div>
+          <p id="oc-version-callout-text" class="oc-version-callout-text">Checking which Sample is included and what GitHub has…</p>
+          <div class="oc-version-choices">
+            <label class="oc-version-choice">
+              <input type="radio" name="oc-first-choice" value="included" checked>
+              <span>Use included <strong id="oc-included-label">—</strong></span>
+            </label>
+            <label class="oc-version-choice" id="oc-choice-latest-wrap">
+              <input type="radio" name="oc-first-choice" value="latest" id="oc-choice-latest">
+              <span>Use latest <strong id="oc-latest-label">—</strong></span>
+            </label>
+            <label class="oc-version-choice">
+              <input type="radio" name="oc-first-choice" value="other" id="oc-choice-other">
+              <span>Use another release</span>
+            </label>
+            <select id="oc-first-release-select" class="input-select" hidden></select>
+          </div>
+          <div class="oc-version-callout-actions">
+            <button id="btn-oc-first-continue" class="btn btn-primary">Continue with this version</button>
+          </div>
+        </div>
+        <div id="session-banner" class="session-banner" style="display:none;">
+          <span id="session-banner-text">A previous Studio config is saved in this browser.</span>
+          <div class="session-banner-actions">
+            <button id="btn-resume-session" class="btn btn-secondary">Resume last config</button>
+            <button id="btn-clear-session" class="btn btn-secondary">Start fresh</button>
+          </div>
+        </div>
+
+        <div class="hardware-grid">
+          <div class="profile-cards-container" id="profiles-list">
+            <!-- Dynamic profile cards injected here -->
+          </div>
+
+          <aside class="profile-details-sidebar" id="profile-detail-panel">
+            <h3 id="panel-profile-title">Hardware Architecture Details</h3>
+            <p id="panel-profile-desc" class="text-muted"></p>
+
+            <div class="info-group">
+              <label>Compatible Chipsets</label>
+              <div id="panel-chipsets" class="chips-container"></div>
+            </div>
+
+            <div class="info-group">
+              <label>GPU family</label>
+              <input type="text" id="gpu-search" class="input-text" placeholder="RX 6800 XT, UHD 630, 6700 XT…">
+              <div id="gpu-match-result" class="cpu-match-result" style="margin-top:8px;"></div>
+              <div id="gpu-cards" class="gpu-cards"></div>
+            </div>
+
+            <div class="info-group">
+              <label>Mandatory ACPI SSDTs (Auto-Injected)</label>
+              <ul id="panel-ssdts" class="ssdt-list"></ul>
+            </div>
+
+            <div id="amd-core-config-group" class="info-group" style="display:none;">
+              <label>AMD Physical Core Count (For Kernel CPUSwitch Patches)</label>
+              <div class="core-selector-row">
+                <input type="range" id="amd-core-slider" min="4" max="64" step="2" value="8">
+                <span id="amd-core-display" class="core-badge">8 Cores (0x08)</span>
+              </div>
+              <p class="text-subtle">OpenCore Studio automatically recalculates and hex-patches <code>algrey - Force cpuid_cores_per_package</code>.</p>
+            </div>
+
+            <div class="info-group">
+              <label>Target Audio Layout ID</label>
+              <div class="audio-input-row">
+                <input type="number" id="audio-layout-input" value="1" min="1" max="99">
+                <span class="text-subtle">Injects <code>alcid=&lt;id&gt;</code> into NVRAM boot-args</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- TAB 2: Kexts Catalog -->
+      <section id="tab-kexts" class="tab-pane">
+        <div class="pane-header-flex">
+          <div>
+            <h2>Kext Catalog & Topological Ordering</h2>
+            <p>Select required kernel extensions. OpenCore Studio enforces strict load-ordering invariants (Lilu index 0, VirtualSMC before sensor plugins).</p>
+          </div>
+          <div class="filter-controls">
+            <input type="text" id="kext-search" placeholder="Search kexts..." class="input-text">
+            <div class="category-filters" id="kext-categories">
+              <button class="pill-btn active" data-cat="all">All</button>
+              <button class="pill-btn" data-cat="core">Core</button>
+              <button class="pill-btn" data-cat="graphics">Graphics</button>
+              <button class="pill-btn" data-cat="audio">Audio</button>
+              <button class="pill-btn" data-cat="network">Network</button>
+              <button class="pill-btn" data-cat="wireless">Wireless</button>
+              <button class="pill-btn" data-cat="utility">Utility</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ordering-banner">
+          <span class="badge badge-info">Strict Invariant Enforcement</span>
+          <span>OpenCore Kernel-Add list is topologically sorted: <strong>Lilu (0) &rarr; VirtualSMC (1) &rarr; Plugins &rarr; Graphics &rarr; Peripherals</strong></span>
+        </div>
+
+        <div class="kext-cards-grid" id="kext-cards-container">
+          <!-- Kext cards injected via JS -->
+        </div>
+      </section>
+
+      <!-- TAB 3: Quirks & Boot Args -->
+      <section id="tab-quirks" class="tab-pane">
+        <div class="pane-header">
+          <h2>Quirks Matrix & NVRAM Boot Arguments</h2>
+          <p>Tuned according to Dortania recommendations for your selected architecture. Toggle with instant live validation.</p>
+        </div>
+
+        <div class="quirks-layout">
+          <div class="quirks-column">
+            <h3>Booter Quirks</h3>
+            <div class="quirks-card" id="booter-quirks-list"></div>
+
+            <h3 style="margin-top:20px;">Kernel Quirks</h3>
+            <div class="quirks-card" id="kernel-quirks-list"></div>
+          </div>
+
+          <div class="quirks-column">
+            <h3>NVRAM Boot Arguments (<code>boot-args</code>)</h3>
+            <div class="boot-args-card">
+              <p class="text-subtle">Click preset badges to toggle, or type custom flags in the field below.</p>
+              <div class="preset-chips" id="boot-args-presets">
+                <button class="chip active" data-arg="-v">-v (Verbose Boot)</button>
+                <button class="chip active" data-arg="keepsyms=1">keepsyms=1 (Panic Symbols)</button>
+                <button class="chip active" data-arg="debug=0x100">debug=0x100 (Prevent Reboot on Panic)</button>
+                <button class="chip" data-arg="agdpmod=pikera">agdpmod=pikera (Navi RX 5000/6000)</button>
+                <button class="chip" data-arg="-wegnoigpu">-wegnoigpu (Disable Intel iGPU)</button>
+                <button class="chip" data-arg="ipc_control_port_options=0">ipc_control_port_options=0 (macOS 14+ VM)</button>
+                <button class="chip" data-arg="e1000=0">e1000=0 (AppleVTD Ethernet Fix)</button>
+              </div>
+
+              <div class="boot-args-input-box">
+                <label>Active <code>boot-args</code> String</label>
+                <input type="text" id="custom-boot-args" class="input-text" value="-v keepsyms=1 debug=0x100 alcid=1">
+              </div>
+            </div>
+
+            <h3 style="margin-top:20px;">ACPI & UEFI Quirks</h3>
+            <div class="quirks-card" id="misc-quirks-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: SMBIOS Identity -->
+      <section id="tab-smbios" class="tab-pane">
+        <div class="pane-header-flex">
+          <div>
+            <h2>SMBIOS Platform Identity Generator</h2>
+            <p>Generate authentic Apple serial numbers, MLB, System UUID, and ROM data compliant with AppleServices (iMessage, FaceTime, iCloud).</p>
+          </div>
+          <button id="btn-regen-smbios" class="btn btn-accent">
+            <span class="icon">🎲</span> Generate Fresh Identity
+          </button>
+        </div>
+
+        <div class="smbios-card">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Target Mac Model (SystemProductName)</label>
+              <select id="smbios-model-select" class="input-select">
+                <option value="iMac20,1">iMac20,1 (Comet Lake 10th Gen Desktop / i5 / i7)</option>
+                <option value="iMac20,2">iMac20,2 (Comet Lake 10th Gen Desktop / i9)</option>
+                <option value="MacPro7,1">MacPro7,1 (AMD Ryzen AM4/AM5 / Intel HEDT / Xeons)</option>
+                <option value="iMacPro1,1">iMacPro1,1 (Intel Alder Lake / Raptor Lake dGPU)</option>
+                <option value="iMac19,1">iMac19,1 (Coffee Lake 8th/9th Gen Desktop)</option>
+                <option value="iMac18,3">iMac18,3 (Kaby Lake 7th Gen)</option>
+                <option value="iMac17,1">iMac17,1 (Skylake 6th Gen)</option>
+                <option value="iMac15,1">iMac15,1 (Haswell 4th Gen)</option>
+                <option value="MacBookPro16,1">MacBookPro16,1 (Comet Lake Mobile 16-inch)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="smbios-fields-grid">
+            <div class="form-group">
+              <label>System Serial Number (12 Chars)</label>
+              <div class="input-with-copy">
+                <input type="text" id="smbios-serial" class="input-text font-mono" readonly>
+                <button class="btn-copy" data-target="smbios-serial">📋</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Board Serial / MLB (17 Chars)</label>
+              <div class="input-with-copy">
+                <input type="text" id="smbios-mlb" class="input-text font-mono" readonly>
+                <button class="btn-copy" data-target="smbios-mlb">📋</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>System UUID (Hardware UUID)</label>
+              <div class="input-with-copy">
+                <input type="text" id="smbios-uuid" class="input-text font-mono" readonly>
+                <button class="btn-copy" data-target="smbios-uuid">📋</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>ROM (MAC Address Hex)</label>
+              <div class="input-with-copy">
+                <input type="text" id="smbios-rom" class="input-text font-mono" readonly>
+                <button class="btn-copy" data-target="smbios-rom">📋</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="smbios-help-box">
+            <h4>AppleServices & iCloud Verification Notice</h4>
+            <p>When preparing for daily-driver macOS use, check your generated serial number at <a href="https://checkcoverage.apple.com" target="_blank" rel="noopener">Apple Check Coverage</a>. A valid Hackintosh serial must report: <em>"We're sorry, but we are unable to complete your request at this time"</em> or <em>"Invalid Serial"</em> (meaning the serial is correctly formatted but has not already been registered to a genuine physical Mac).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: Repositories & Guidance Hub -->
+      <section id="tab-repos" class="tab-pane">
+        <div class="pane-header">
+          <h2>Upstream Updates, Kext Repositories & Guidance</h2>
+          <p>Pull newer Acidanthera Sample.plist schemas, AMD Vanilla patches, and kext release tags without rebuilding the app. Hardware profiles and custom repos still import the same way.</p>
+        </div>
+
+        <div class="card update-hub-card" id="update-hub">
+          <div class="update-hub-header">
+            <div>
+              <h3>OpenCore Upstream Sync</h3>
+              <p class="text-subtle">Replace the frozen Sample.plist baseline with the latest official OpenCorePkg sample, refresh AMD Vanilla kernel patches, and record current kext release tags.</p>
+            </div>
+            <div class="update-hub-actions">
+              <button id="btn-check-updates" class="btn btn-secondary">Check for Updates</button>
+              <button id="btn-apply-updates" class="btn btn-primary" disabled>Apply Selected</button>
+              <button id="btn-rollback-updates" class="btn btn-secondary" disabled>Rollback Last Apply</button>
+            </div>
+          </div>
+
+          <div class="update-component-grid">
+            <label class="update-component">
+              <input type="checkbox" id="upd-opencore" checked>
+              <div>
+                <div class="update-component-title">OpenCore Sample.plist</div>
+                <div id="upd-opencore-status" class="update-component-meta">Current: bundled — check upstream to compare.</div>
+              </div>
+            </label>
+            <label class="update-component">
+              <input type="checkbox" id="upd-amd" checked>
+              <div>
+                <div class="update-component-title">AMD Vanilla patches</div>
+                <div id="upd-amd-status" class="update-component-meta">Current: bundled — used when generating Ryzen configs.</div>
+              </div>
+            </label>
+            <label class="update-component">
+              <input type="checkbox" id="upd-kexts" checked>
+              <div>
+                <div class="update-component-title">Kext catalog versions</div>
+                <div id="upd-kexts-status" class="update-component-meta">Records latest GitHub release tags for each catalog kext.</div>
+              </div>
+            </label>
+          </div>
+
+          <div class="form-group" id="oc-release-picker-group" style="display:none;margin-top:14px;">
+            <label>OpenCorePkg release to apply</label>
+            <select id="oc-release-select" class="input-select"></select>
+          </div>
+
+          <div id="update-notes" class="update-notes">
+            Click <strong>Check for Updates</strong> to query GitHub for Acidanthera OpenCorePkg, AMD-OSX/AMD_Vanilla, and catalog kext releases.
+          </div>
+        </div>
+
+        <div class="repos-layout">
+          <div class="repos-column">
+            <h3>Registered Kext Repositories</h3>
+            <div id="repos-list" class="repos-list"></div>
+
+            <div class="card add-repo-card">
+              <h4>Register Custom Kext Repository</h4>
+              <p class="text-subtle">Add your own private or community GitHub repository to supply kexts.</p>
+              <form id="form-add-repo">
+                <div class="form-group">
+                  <label>Repository Name</label>
+                  <input type="text" id="repo-name" class="input-text" placeholder="e.g. My Custom Hardware Kexts" required>
+                </div>
+                <div class="form-group">
+                  <label>GitHub Slug or URL</label>
+                  <input type="text" id="repo-url" class="input-text" placeholder="e.g. myorg/mykext-repo or https://github.com/..." required>
+                </div>
+                <div class="form-group">
+                  <label>Maintainer</label>
+                  <input type="text" id="repo-maintainer" class="input-text" placeholder="e.g. HackerTeam" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top:10px;">Register Repository</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="repos-column">
+            <div class="card guidance-import-card">
+              <h3>Dynamic Guidance Engine</h3>
+              <p class="text-subtle">Import new hardware profiles (e.g. Arrow Lake, Threadripper, new Laptop models) from a remote URL or direct JSON specification.</p>
+              
+              <div class="form-group">
+                <label>Import from Remote URL</label>
+                <div class="input-with-action">
+                  <input type="url" id="import-url" class="input-text" placeholder="https://raw.githubusercontent.com/.../profile.json">
+                  <button id="btn-import-url" class="btn btn-secondary">Pull & Import</button>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 15px;">
+                <label>Or Paste Raw Profile JSON</label>
+                <textarea id="import-json" class="input-textarea font-mono" rows="6" placeholder='{ "id": "intel_arrow_lake", "name": "Intel Arrow Lake (Core Ultra)", ... }'></textarea>
+                <button id="btn-import-json" class="btn btn-secondary" style="margin-top:8px;">Import JSON Profile</button>
+              </div>
+            </div>
+
+            <div class="card instructions-card">
+              <h3>Specification: How Custom Repos & Profiles Work</h3>
+              <div class="instructions-body">
+                <p><strong>1. Kext Repository Requirements:</strong></p>
+                <ul>
+                  <li>Must publish releases on GitHub or host zip archives with <code>.kext</code> bundles.</li>
+                  <li>Kexts must provide standard <code>Contents/Info.plist</code> and binary in <code>Contents/MacOS/</code>.</li>
+                  <li>Plugins must specify relative bundle paths (e.g. <code>VirtualSMC.kext/Contents/PlugIns/SMCProcessor.kext</code>).</li>
+                </ul>
+
+                <p style="margin-top:12px;"><strong>2. Hardware Profile JSON Schema:</strong></p>
+                <pre class="code-snippet font-mono">{
+  "id": "my_cpu_profile",
+  "name": "Human Friendly Name",
+  "platform": "desktop|laptop|vm",
+  "architecture": "Intel|AMD",
+  "mandatorySsdt": [{"name": "SSDT-PLUG.aml", "reason": "..."}],
+  "recommendedKexts": ["Lilu", "VirtualSMC"],
+  "booterQuirks": {"DevirtualiseMmio": true, ...},
+  "kernelQuirks": {"ProvideCurrentCpuInfo": true, ...},
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100"
+}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: Live Plist & Validator -->
+      <section id="tab-preview" class="tab-pane">
+        <div class="pane-header-flex">
+          <div>
+            <h2>Canonical Apple XML Plist Output & Diagnostics</h2>
+            <p>100% compliant OpenCore configuration assembled in real time via Python <code>plistlib</code>.</p>
+          </div>
+          <div class="preview-actions">
+            <button id="btn-copy-plist" class="btn btn-secondary">
+              <span class="icon">📋</span> Copy XML
+            </button>
+            <button id="btn-download-plist-2" class="btn btn-primary">
+              <span class="icon">💾</span> Download config.plist
+            </button>
+          </div>
+        </div>
+
+        <div class="preview-grid">
+          <!-- Diagnostics Checklist Panel -->
+          <div class="diagnostics-panel">
+            <h3>Pre-Flight Safety Checks</h3>
+            <div id="diagnostics-list" class="diagnostics-list">
+              <div class="diag-item diag-loading">Running diagnostics...</div>
+            </div>
+
+            <div class="stats-summary" id="stats-summary">
+              <div class="stat-box">
+                <div class="stat-number" id="stat-kexts">0</div>
+                <div class="stat-label">Kexts Injected</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-number" id="stat-ssdts">0</div>
+                <div class="stat-label">SSDTs Active</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-number" id="stat-patches">0</div>
+                <div class="stat-label">Kernel Patches</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Plist Code Viewer -->
+          <div class="code-viewer-panel">
+            <div class="code-viewer-header">
+              <span>config.plist (Apple XML Format)</span>
+              <span id="plist-size-badge" class="badge">0 KB</span>
+            </div>
+            <pre class="plist-code-display"><code id="plist-code-content">&lt;!-- Generating OpenCore config.plist... --&gt;</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: Build EFI / USB -->
+      <section id="tab-usb" class="tab-pane">
+        <div class="pane-header">
+          <h2>Build Bootable OpenCore EFI / USB</h2>
+          <p>Downloads the OpenCore RELEASE package, your selected kexts, and compiled SSDTs, then writes a complete <code>EFI/</code> folder. macOS itself is not installed — this stick only boots the OpenCore picker so you can install or run macOS from another volume.</p>
+        </div>
+
+        <div class="card macos-catalog-card">
+          <div class="update-hub-header">
+            <div>
+              <h3>macOS full installers (Monterey and newer)</h3>
+            </div>
+            <button id="btn-refresh-macos" class="btn btn-secondary">Refresh list</button>
+          </div>
+          <div id="macos-catalog-status" class="cpu-match-result" hidden></div>
+          <div id="macos-catalog-list" class="macos-catalog-list"></div>
+          <div class="macos-download-panel">
+            <div class="update-hub-actions">
+              <button id="btn-download-macos" class="btn btn-primary" disabled>Download selected installer</button>
+              <button id="btn-cancel-macos" class="btn btn-secondary" hidden>Cancel download</button>
+              <button id="btn-remove-macos-partial" class="btn btn-secondary" hidden>Remove partial</button>
+            </div>
+            <div class="macos-progress" hidden>
+              <div class="macos-progress-track"><div id="macos-progress-bar" class="macos-progress-bar"></div></div>
+              <div id="macos-progress-label" class="macos-progress-label"></div>
+            </div>
+            <div id="macos-download-status" class="cpu-match-result">Select a version to download it into the local cache.</div>
+          </div>
+        </div>
+
+        <div class="usb-layout">
+          <div class="card">
+            <h3>1. Assemble EFI folder</h3>
+            <p class="text-subtle">Uses the CPU/GPU/kext/SMBIOS choices from the earlier tabs (same payload as Export config.plist).</p>
+            <div class="form-group" style="margin-top:12px;">
+              <label>OpenCorePkg release</label>
+              <input type="text" id="efi-oc-tag" class="input-text" placeholder="leave blank for latest (e.g. 1.0.7)">
+            </div>
+            <div class="update-hub-actions" style="margin-top:12px;">
+              <button id="btn-build-efi" class="btn btn-primary">Build EFI Folder</button>
+              <a id="btn-download-efi-zip" class="btn btn-secondary" href="/api/efi/download" style="display:none;">Download EFI.zip</a>
+            </div>
+            <pre id="efi-build-log" class="update-notes" style="margin-top:14px;">Build an EFI folder after your plist looks sane on tab 6.</pre>
+          </div>
+
+          <div class="card">
+            <h3>2. Write to a USB stick</h3>
+            <p class="text-subtle">Refresh to see mounted external volumes. Copy is non-destructive. Prepare Disk erases the whole USB as FAT32/GPT named OPENCORE — type ERASE to confirm.</p>
+            <div class="update-hub-actions" style="margin-top:12px;">
+              <button id="btn-refresh-usb" class="btn btn-secondary">Refresh USB list</button>
+              <button id="btn-copy-efi" class="btn btn-primary" disabled>Copy EFI to selected volume</button>
+            </div>
+            <div id="usb-volume-list" class="usb-volume-list"></div>
+
+            <div class="form-group" style="margin-top:16px;">
+              <label>Prepare whole external disk (optional, destructive)</label>
+              <select id="usb-disk-select" class="input-select">
+                <option value="">No whole disk selected</option>
+              </select>
+              <div class="input-with-action" style="margin-top:8px;">
+                <input type="text" id="usb-erase-confirm" class="input-text" placeholder="Type ERASE to wipe the selected disk">
+                <button id="btn-prepare-usb" class="btn btn-secondary">Erase + copy EFI</button>
+              </div>
+            </div>
+            <div id="usb-write-log" class="cpu-match-result" style="margin-top:10px;"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">Action completed</div>
+  </div>
+
+  <script src="studio.js?v=step-fit"></script>
+</body>
+</html>

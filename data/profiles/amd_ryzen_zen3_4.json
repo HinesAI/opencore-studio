@@ -1,0 +1,85 @@
+{
+  "id": "amd_ryzen_zen3_4",
+  "name": "AMD Ryzen Desktop (Zen 3 / Zen 4 / AM4 & AM5)",
+  "platform": "desktop",
+  "cpuFamily": "AMD Ryzen 5000 / 7000 / 9000 Series (Zen 3, Zen 4, Zen 5)",
+  "examples": ["5600X", "5900X", "7950X", "9800X3D"],
+  "searchTerms": ["zen3", "zen4", "zen5", "am5", "5900x"],
+  "chipsets": ["B550", "X570", "A520", "B650", "X670", "A620", "X870"],
+  "description": "Desktop AMD Ryzen systems on Socket AM4 and AM5. Uses AMD-OSX Vanilla kernel patches with automatic core-count hex replacement.",
+  "recommendedSmbios": {
+    "default": "MacPro7,1",
+    "alternative": "iMacPro1,1"
+  },
+  "supportedMacOs": {
+    "min": "macOS 11 Big Sur",
+    "max": "macOS 15 Sequoia"
+  },
+  "mandatorySsdt": [
+    { "name": "SSDT-CPUR.aml", "reason": "Defines Processor objects required on B550/A520/AM5 boards where ACPI omits ACPI CPU declarations." },
+    { "name": "SSDT-EC-USBX-DESKTOP.aml", "reason": "Provides dummy Embedded Controller and USB power properties." }
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "WhateverGreen", "AppleALC", "LucyRTL8125Ethernet", "NVMeFix", "RestrictEvents", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": false,
+    "DisableSingleUser": false,
+    "DisableVariableWrite": false,
+    "DiscardHibernateMap": false,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "FixupAppleEfiImages": false,
+    "ForceBooterSignature": false,
+    "ForceExitBootServices": false,
+    "ProtectMemoryRegions": false,
+    "ProtectSecureBoot": false,
+    "ProtectUefiServices": false,
+    "ProvideCustomSlide": true,
+    "ProvideMaxSlide": 0,
+    "RebuildAppleMemoryMap": true,
+    "ResizeAppleGpuBars": 0,
+    "SetupVirtualMap": false,
+    "SignalAppleOS": false,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleCpuPmCfgLock": false,
+    "AppleXcpmCfgLock": false,
+    "AppleXcpmExtraMsrs": false,
+    "AppleXcpmForceBoost": false,
+    "CustomPciSerialDevice": false,
+    "CustomSMBIOSGuid": false,
+    "DisableIoMapper": false,
+    "DisableIoMapperMapping": false,
+    "DisableLinkeditJettison": true,
+    "DisableRtcChecksum": false,
+    "ExtendBTFeatureFlags": false,
+    "ExternalDiskIcons": false,
+    "ForceAquantiaEthernet": false,
+    "ForceSecureBootScheme": false,
+    "IncreasePciBarSize": false,
+    "LapicKernelPanic": false,
+    "LegacyCommpage": false,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true,
+    "ProvideCurrentCpuInfo": true,
+    "SetApfsTrimTimeout": -1,
+    "ThirdPartyDrives": false,
+    "XhciPortLimit": false
+  },
+  "kernelEmulate": {
+    "DummyPowerManagement": true
+  },
+  "amdPatchesRequired": true,
+  "bootArgs": ["-v", "debug=0x100", "keepsyms=1", "alcid=1", "agdpmod=pikera", "npci=0x2000"],
+  "gpuGuidance": {
+    "amdDgpu": {
+      "navi10_21_note": "AMD Radeon RX 5000/6000 series require 'agdpmod=pikera' in boot-args.",
+      "polaris_note": "AMD Radeon RX 470/480/570/580/590 works out of the box."
+    }
+  },
+  "biosSettings": {
+    "disable": ["Fast Boot", "Secure Boot", "CSM", "Serial/COM Port"],
+    "enable": ["Above 4G Decoding", "Resizable BAR Support (set ResizeAppleGpuBars to 0)", "SVM (Virtualization)", "XHCI Hand-off", "SATA Mode: AHCI"]
+  }
+}

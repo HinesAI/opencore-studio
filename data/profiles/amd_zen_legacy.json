@@ -1,0 +1,36 @@
+{
+  "id": "amd_zen_legacy",
+  "name": "AMD Ryzen Zen / Zen+ / Zen 2 (1000 / 2000 / 3000)",
+  "platform": "desktop",
+  "architecture": "AMD",
+  "cpuFamily": "Ryzen 1000 / 2000 / 3000 (Zen, Zen+, Zen 2)",
+  "chipsets": ["X370", "B350", "X470", "B450", "X570", "B550"],
+  "examples": ["1700X", "2700X", "3600", "3700X", "3900X"],
+  "searchTerms": ["zen", "zen2", "ryzen 3000", "am4"],
+  "description": "Earlier AM4 Ryzen. Needs AMD Vanilla kernel patches and DummyPowerManagement. Discrete GPU required unless this is a G-series APU (use the APU profile).",
+  "recommendedSmbios": {"default": "iMacPro1,1", "alternative": "MacPro7,1"},
+  "supportedMacOs": {"min": "macOS 10.15 Catalina", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-EC-USBX-DESKTOP.aml", "reason": "Fake EC and USB power."},
+    {"name": "SSDT-CPUR.aml", "reason": "CPU Processor objects on newer AM4 boards that omit them."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "WhateverGreen", "AppleALC", "NVMeFix", "RestrictEvents", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "ProvideCustomSlide": true,
+    "RebuildAppleMemoryMap": true,
+    "SetupVirtualMap": false,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true,
+    "ProvideCurrentCpuInfo": true
+  },
+  "kernelEmulate": {"DummyPowerManagement": true},
+  "amdPatchesRequired": true,
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1 npci=0x2000"
+}

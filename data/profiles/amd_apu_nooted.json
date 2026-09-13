@@ -1,0 +1,32 @@
+{
+  "id": "amd_apu_nooted",
+  "name": "AMD Ryzen APU (NootedRed)",
+  "platform": "desktop",
+  "architecture": "AMD",
+  "cpuFamily": "Ryzen G-series APUs (Vega / RDNA2 iGPU)",
+  "chipsets": ["B450", "B550", "A520", "X570"],
+  "examples": ["2200G", "3400G", "4650G", "5600G", "5700G"],
+  "searchTerms": ["apu", "nootedred", "vega 8", "g-series"],
+  "description": "APU iGPU path. Uses NootedRed and must not load WhateverGreen.",
+  "recommendedSmbios": {"default": "iMacPro1,1"},
+  "supportedMacOs": {"min": "macOS 12 Monterey", "max": "macOS 15 Sequoia"},
+  "mandatorySsdt": [
+    {"name": "SSDT-EC-USBX-DESKTOP.aml", "reason": "Fake EC and USB power."}
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "NootedRed", "AppleALC", "NVMeFix", "RestrictEvents", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "EnableSafeModeSlide": true,
+    "ProvideCustomSlide": true,
+    "RebuildAppleMemoryMap": true,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "DisableLinkeditJettison": true,
+    "PanicNoKextDump": true,
+    "ProvideCurrentCpuInfo": true
+  },
+  "kernelEmulate": {"DummyPowerManagement": true},
+  "amdPatchesRequired": true,
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1"
+}

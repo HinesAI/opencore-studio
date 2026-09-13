@@ -1,0 +1,87 @@
+{
+  "id": "intel_alder_raptor",
+  "name": "Intel Alder Lake / Raptor Lake (12th / 13th / 14th Gen Desktop)",
+  "platform": "desktop",
+  "cpuFamily": "Intel 12th/13th/14th Gen (Core i3/i5/i7/i9 12xxx, 13xxx, 14xxx)",
+  "examples": ["i5-12600K", "i7-13700K", "i9-14900K"],
+  "searchTerms": ["alder", "raptor", "lga1700", "12th", "13th", "14th"],
+  "chipsets": ["Z690", "B660", "H670", "Z790", "B760", "H770"],
+  "description": "Modern Intel hybrid architecture desktop (LGA1700). Requires a supported discrete GPU (AMD Radeon) because integrated UHD 770/730 graphics have zero native macOS support.",
+  "recommendedSmbios": {
+    "default": "MacPro7,1",
+    "alternative": "iMacPro1,1"
+  },
+  "supportedMacOs": {
+    "min": "macOS 12 Monterey",
+    "max": "macOS 15 Sequoia"
+  },
+  "mandatorySsdt": [
+    { "name": "SSDT-PLUG-ALT.aml", "reason": "Mandatory on LGA1700 to provide CPU power management for CP00-style ACPI processor objects (replaces SSDT-PLUG)." },
+    { "name": "SSDT-EC-USBX.aml", "reason": "Creates fake Embedded Controller and specifies USB bus power limits." },
+    { "name": "SSDT-AWAC.aml", "reason": "Forces legacy RTC clock enable instead of unsupported AWAC timer." }
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "LucyRTL8125Ethernet", "NVMeFix", "RestrictEvents", "CpuTopologyRebuild", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": true,
+    "DisableSingleUser": false,
+    "DisableVariableWrite": false,
+    "DiscardHibernateMap": false,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "FixupAppleEfiImages": false,
+    "ForceBooterSignature": false,
+    "ForceExitBootServices": false,
+    "ProtectMemoryRegions": false,
+    "ProtectSecureBoot": false,
+    "ProtectUefiServices": true,
+    "ProvideCustomSlide": true,
+    "ProvideMaxSlide": 0,
+    "RebuildAppleMemoryMap": true,
+    "ResizeAppleGpuBars": 0,
+    "SetupVirtualMap": true,
+    "SignalAppleOS": false,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleCpuPmCfgLock": false,
+    "AppleXcpmCfgLock": true,
+    "AppleXcpmExtraMsrs": false,
+    "AppleXcpmForceBoost": false,
+    "CustomPciSerialDevice": false,
+    "CustomSMBIOSGuid": false,
+    "DisableIoMapper": true,
+    "DisableIoMapperMapping": false,
+    "DisableLinkeditJettison": true,
+    "DisableRtcChecksum": false,
+    "ExtendBTFeatureFlags": false,
+    "ExternalDiskIcons": false,
+    "ForceAquantiaEthernet": false,
+    "ForceSecureBootScheme": false,
+    "IncreasePciBarSize": false,
+    "LapicKernelPanic": false,
+    "LegacyCommpage": false,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true,
+    "ProvideCurrentCpuInfo": true,
+    "SetApfsTrimTimeout": -1,
+    "ThirdPartyDrives": false,
+    "XhciPortLimit": false
+  },
+  "bootArgs": ["-v", "debug=0x100", "keepsyms=1", "alcid=1", "agdpmod=pikera", "-wegnoigpu"],
+  "gpuGuidance": {
+    "igpu": {
+      "supported": false,
+      "name": "Intel UHD 770/730 (Unsupported)",
+      "warning": "Intel UHD 730/750/770 has no drivers in macOS. You must boot using a compatible AMD Radeon dGPU (RX 6600, 6800, 6900 XT, or 500 series) and add '-wegnoigpu' to boot-args."
+    },
+    "amdDgpu": {
+      "navi10_21_note": "AMD Navi 21/23 (RX 6600, 6600 XT, 6800, 6800 XT, 6900 XT) works natively with 'agdpmod=pikera'.",
+      "unsupportedWarning": "AMD RX 6700 XT requires NootRX kext. RX 6500 XT, 6400, and RX 7000 series are unsupported."
+    }
+  },
+  "biosSettings": {
+    "disable": ["Fast Boot", "Secure Boot", "Intel SGX", "CFG Lock", "CSM"],
+    "enable": ["VT-x", "Above 4G Decoding", "Resizable BAR (set ResizeAppleGpuBars to 0)", "Hyper-Threading", "XHCI Hand-off", "AHCI Mode"]
+  }
+}

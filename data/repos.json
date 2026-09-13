@@ -1,0 +1,108 @@
+{
+  "version": "1.0.0",
+  "instructions": {
+    "overview": "OpenCore Studio supports fetching kexts directly from GitHub Releases or custom JSON repository feeds. You can add your own custom repository URL or GitHub organization/repo.",
+    "supportedTypes": [
+      {
+        "type": "github_repo",
+        "description": "Standard GitHub repository with release assets (e.g. 'acidanthera/Lilu'). OpenCore Studio queries the GitHub API '/repos/{owner}/{repo}/releases/latest' and looks for zip files containing '.kext' bundles.",
+        "example": {
+          "id": "my-custom-kext",
+          "name": "MyCustomKext",
+          "type": "github_repo",
+          "target": "myusername/MyCustomKext",
+          "enabled": true
+        }
+      },
+      {
+        "type": "json_manifest",
+        "description": "Direct URL pointing to a JSON manifest listing kexts and their release download URLs, checksums, and version tags.",
+        "example": {
+          "id": "custom-community-feed",
+          "name": "Community Nightly Feed",
+          "type": "json_manifest",
+          "url": "https://raw.githubusercontent.com/example/hackintosh-kexts/main/feed.json",
+          "enabled": true
+        }
+      }
+    ],
+    "manifestSchema": {
+      "kexts": [
+        {
+          "id": "CustomDriver",
+          "name": "CustomDriver",
+          "version": "1.0.0",
+          "category": "core|graphics|audio|ethernet|wifi|bluetooth|laptop|usb|utilities",
+          "bundlePath": "CustomDriver.kext",
+          "executablePath": "Contents/MacOS/CustomDriver",
+          "plistPath": "Contents/Info.plist",
+          "downloadUrl": "https://github.com/example/CustomDriver/releases/download/v1.0.0/CustomDriver-RELEASE.zip",
+          "dependencies": [
+            "Lilu"
+          ],
+          "priority": 50
+        }
+      ]
+    }
+  },
+  "repositories": [
+    {
+      "id": "acidanthera",
+      "name": "Acidanthera Official (GitHub)",
+      "type": "github_org",
+      "target": "acidanthera",
+      "official": true,
+      "enabled": true,
+      "description": "Official Acidanthera repository for Lilu, VirtualSMC, WhateverGreen, AppleALC, IntelMausi, BrcmPatchRAM, and NVMeFix."
+    },
+    {
+      "id": "mieze",
+      "name": "Mieze Ethernet Drivers (GitHub)",
+      "type": "github_org",
+      "target": "Mieze",
+      "official": true,
+      "enabled": true,
+      "description": "High performance Realtek RTL8111, RTL8125 2.5G, and Atheros Killer NIC drivers."
+    },
+    {
+      "id": "openintelwireless",
+      "name": "OpenIntelWireless (GitHub)",
+      "type": "github_org",
+      "target": "OpenIntelWireless",
+      "official": true,
+      "enabled": true,
+      "description": "AirportItlwm and IntelBluetoothFirmware drivers for native Intel wireless cards."
+    },
+    {
+      "id": "chefkissinc",
+      "name": "ChefKissInc / Nooted (GitHub)",
+      "type": "github_org",
+      "target": "ChefKissInc",
+      "official": false,
+      "enabled": true,
+      "description": "NootedRed (AMD APU graphics) and NootRX (Navi 22 RX 6700 XT) drivers."
+    },
+    {
+      "id": "usbtoolbox",
+      "name": "USBToolBox (GitHub)",
+      "type": "github_repo",
+      "target": "USBToolBox/kext",
+      "official": true,
+      "enabled": true,
+      "description": "Modern cross-platform USB port mapping kext."
+    }
+  ],
+  "customRepositories": [
+    {
+      "id": "community_testing_repo",
+      "name": "Community Testing Repo",
+      "type": "github_repo",
+      "target": "testorg/custom-kexts",
+      "url": "testorg/custom-kexts",
+      "maintainer": "Tester",
+      "enabled": true,
+      "description": "Custom repository added via OpenCore Studio",
+      "official": false
+    }
+  ]
+}

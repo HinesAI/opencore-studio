@@ -1,0 +1,92 @@
+{
+  "id": "intel_coffee_lake",
+  "name": "Intel Coffee Lake (8th / 9th Gen Desktop)",
+  "platform": "desktop",
+  "cpuFamily": "Intel 8th/9th Gen (Core i3/i5/i7/i9 8xxx & 9xxx)",
+  "examples": ["i5-8400", "i7-8700K", "i9-9900K"],
+  "searchTerms": ["coffee", "lga1151", "8th gen", "9th gen"],
+  "chipsets": ["Z370", "Z390", "B360", "B365", "H370", "H310"],
+  "description": "Desktop systems using Intel 8th and 9th Gen processors on Socket LGA1151-v2. Native Intel UHD 630 iGPU support and great stability.",
+  "recommendedSmbios": {
+    "igpu_only": "iMac19,1",
+    "igpu_dgpu": "iMac19,1",
+    "dgpu_only": "iMacPro1,1"
+  },
+  "supportedMacOs": {
+    "min": "macOS 10.13 High Sierra",
+    "max": "macOS 15 Sequoia"
+  },
+  "mandatorySsdt": [
+    { "name": "SSDT-PLUG.aml", "reason": "Enables native X86PlatformPlugin CPU power management." },
+    { "name": "SSDT-EC-USBX.aml", "reason": "Creates fake Embedded Controller and supplies USB bus power parameters." },
+    { "name": "SSDT-AWAC.aml", "reason": "Disables AWAC timer on 300-series boards to allow legacy RTC timekeeping." },
+    { "name": "SSDT-PMC.aml", "reason": "Restores native NVRAM write support on 300-series chipsets (except Z370)." }
+  ],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": true,
+    "DisableSingleUser": false,
+    "DisableVariableWrite": false,
+    "DiscardHibernateMap": false,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "FixupAppleEfiImages": false,
+    "ForceBooterSignature": false,
+    "ForceExitBootServices": false,
+    "ProtectMemoryRegions": false,
+    "ProtectSecureBoot": false,
+    "ProtectUefiServices": false,
+    "ProvideCustomSlide": true,
+    "ProvideMaxSlide": 0,
+    "RebuildAppleMemoryMap": true,
+    "ResizeAppleGpuBars": -1,
+    "SetupVirtualMap": true,
+    "SignalAppleOS": false,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleCpuPmCfgLock": false,
+    "AppleXcpmCfgLock": true,
+    "AppleXcpmExtraMsrs": false,
+    "AppleXcpmForceBoost": false,
+    "CustomPciSerialDevice": false,
+    "CustomSMBIOSGuid": false,
+    "DisableIoMapper": true,
+    "DisableIoMapperMapping": false,
+    "DisableLinkeditJettison": true,
+    "DisableRtcChecksum": false,
+    "ExtendBTFeatureFlags": false,
+    "ExternalDiskIcons": false,
+    "ForceAquantiaEthernet": false,
+    "ForceSecureBootScheme": false,
+    "IncreasePciBarSize": false,
+    "LapicKernelPanic": false,
+    "LegacyCommpage": false,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true,
+    "ProvideCurrentCpuInfo": false,
+    "SetApfsTrimTimeout": -1,
+    "ThirdPartyDrives": false,
+    "XhciPortLimit": false
+  },
+  "bootArgs": ["-v", "debug=0x100", "keepsyms=1", "alcid=1"],
+  "gpuGuidance": {
+    "igpu": {
+      "supported": true,
+      "name": "Intel UHD 630",
+      "deviceProperties": {
+        "PciRoot(0x0)/Pci(0x2,0x0)": {
+          "AAPL,ig-platform-id": "0300913E",
+          "device-id": "9B3E0000",
+          "framebuffer-patch-enable": "01000000",
+          "framebuffer-stolenmem": "00003001"
+        }
+      }
+    }
+  },
+  "biosSettings": {
+    "disable": ["Fast Boot", "Secure Boot", "Intel SGX", "CFG Lock", "CSM"],
+    "enable": ["VT-x", "Above 4G Decoding", "Hyper-Threading", "XHCI Hand-off", "AHCI Mode"]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "intel_meteor_lake",
+  "name": "Intel Meteor Lake (Core Ultra 1xxH)",
+  "platform": "laptop",
+  "architecture": "Intel",
+  "cpuFamily": "Meteor Lake",
+  "chipsets": [
+    "Intel 800 Series"
+  ],
+  "description": "Intel Core Ultra mobile architecture.",
+  "mandatorySsdt": [
+    {
+      "name": "SSDT-PLUG-ALT.aml",
+      "reason": "Hybrid CPU power management"
+    }
+  ],
+  "recommendedKexts": [
+    "Lilu",
+    "VirtualSMC",
+    "ECEnabler"
+  ],
+  "booterQuirks": {
+    "DevirtualiseMmio": true
+  },
+  "kernelQuirks": {
+    "ProvideCurrentCpuInfo": true
+  },
+  "recommendedBootArgs": "-v keepsyms=1"
+}

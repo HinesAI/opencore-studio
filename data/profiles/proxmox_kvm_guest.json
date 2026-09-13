@@ -1,0 +1,70 @@
+{
+  "id": "proxmox_kvm_guest",
+  "name": "Proxmox VE / KVM Virtual Machine (macOS Guest)",
+  "platform": "vm",
+  "cpuFamily": "Virtual QEMU / KVM (Host Passthrough or Penryn)",
+  "chipsets": ["Q35"],
+  "description": "Optimized OpenCore configuration for running macOS inside a Proxmox VE / QEMU virtual machine with optional PCIe GPU passthrough.",
+  "recommendedSmbios": {
+    "default": "MacPro7,1",
+    "alternative": "iMacPro1,1"
+  },
+  "supportedMacOs": {
+    "min": "macOS 10.15 Catalina",
+    "max": "macOS 15 Sequoia"
+  },
+  "mandatorySsdt": [],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "WhateverGreen", "AppleALC", "RestrictEvents"],
+  "booterQuirks": {
+    "AvoidRuntimeDefrag": true,
+    "DevirtualiseMmio": false,
+    "DisableSingleUser": false,
+    "DisableVariableWrite": false,
+    "DiscardHibernateMap": false,
+    "EnableSafeModeSlide": true,
+    "EnableWriteUnprotector": false,
+    "FixupAppleEfiImages": false,
+    "ForceBooterSignature": false,
+    "ForceExitBootServices": false,
+    "ProtectMemoryRegions": false,
+    "ProtectSecureBoot": false,
+    "ProtectUefiServices": false,
+    "ProvideCustomSlide": true,
+    "ProvideMaxSlide": 0,
+    "RebuildAppleMemoryMap": true,
+    "ResizeAppleGpuBars": -1,
+    "SetupVirtualMap": false,
+    "SignalAppleOS": false,
+    "SyncRuntimePermissions": true
+  },
+  "kernelQuirks": {
+    "AppleCpuPmCfgLock": false,
+    "AppleXcpmCfgLock": false,
+    "AppleXcpmExtraMsrs": false,
+    "AppleXcpmForceBoost": false,
+    "CustomPciSerialDevice": false,
+    "CustomSMBIOSGuid": false,
+    "DisableIoMapper": false,
+    "DisableIoMapperMapping": false,
+    "DisableLinkeditJettison": true,
+    "DisableRtcChecksum": false,
+    "ExtendBTFeatureFlags": false,
+    "ExternalDiskIcons": false,
+    "ForceAquantiaEthernet": false,
+    "ForceSecureBootScheme": false,
+    "IncreasePciBarSize": false,
+    "LapicKernelPanic": false,
+    "LegacyCommpage": false,
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true,
+    "ProvideCurrentCpuInfo": true,
+    "SetApfsTrimTimeout": -1,
+    "ThirdPartyDrives": false,
+    "XhciPortLimit": false
+  },
+  "bootArgs": ["-v", "debug=0x100", "keepsyms=1", "alcid=1", "agdpmod=pikera"],
+  "biosSettings": {
+    "disable": [],
+    "enable": ["Machine type: q35", "BIOS: OVMF (UEFI)", "Display: none (if passthrough) or VirtIO-GPU"]
+  }
+}
