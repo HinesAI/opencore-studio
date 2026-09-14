@@ -51,7 +51,3 @@ This invokes Apple's native `swiftc` compiler on `macos-native/main.swift` and e
 - **`data/`**: Canonical `Sample.plist`, AMD Vanilla patches, 26 curated kexts, and 5 hardware profiles (Comet Lake, Alder/Raptor Lake, Coffee Lake, AMD Ryzen, Proxmox VM).
 - **`macos-native/main.swift`**: Native Swift AppKit wrapper embedding `WKWebView` and controlling the Python backend lifecycle.
 
----
-
-## 🤖 Instructions for AI Agents / Cursor on Mac Pro
-Refer to **`MACPRO-TAKEOVER-CONTEXT.txt`** for the complete technical handover specification, API contract, and plist invariants.
