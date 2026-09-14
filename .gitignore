@@ -19,6 +19,5 @@ data/cache/
 data/builds/
 data/backups/
 data/first-run.json
-share/remote.conf
-share/efi/
-share/incoming/
+share/
+sync-share.sh
