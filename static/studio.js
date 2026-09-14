@@ -753,6 +753,7 @@ document.addEventListener("DOMContentLoaded", () => {
         box.textContent = `${value} → ${cpu.profile.name}${extra ? " · " + extra : ""}. Click the highlighted card or it will be selected.`;
         renderProfiles();
         selectProfile(cpu.profile.id);
+        if (cpu.suggestedGpuId) applyGpu(cpu.suggestedGpuId);
       } else {
         state.suggestedProfileId = "";
         box.className = "cpu-match-result match-miss";
@@ -1683,7 +1684,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const row = document.createElement("label");
         row.className = `usb-volume-item ${selectedUsbVolume === v.mountPoint ? "active" : ""}`;
         row.innerHTML = `<input type="radio" name="usb-volume" value="${v.mountPoint}" ${selectedUsbVolume === v.mountPoint ? "checked" : ""}>
-          <div><strong>${v.name}</strong><div class="gpu-card-meta">${v.mountPoint} · ${v.fileSystem || "volume"}</div></div>`;
+          <div><strong>${v.name}${v.recommended ? " · recommended" : ""}</strong><div class="gpu-card-meta">${v.mountPoint} · ${v.fileSystem || "volume"}${v.hint ? " · " + v.hint : ""}</div></div>`;
         row.querySelector("input").addEventListener("change", () => {
           selectedUsbVolume = v.mountPoint;
           document.getElementById("btn-copy-efi").disabled = false;

@@ -521,7 +521,7 @@
 
           <div class="card">
             <h3>2. Write to a USB stick</h3>
-            <p class="text-subtle">Refresh to see mounted external volumes. Copy is non-destructive. Prepare Disk erases the whole USB as FAT32/GPT named OPENCORE — type ERASE to confirm.</p>
+            <p class="text-subtle">Refresh to see USB volumes and EFI partitions. On a macOS installer stick, OpenCore is copied to the EFI partition so Sequoia stays intact. Copy is non-destructive. Prepare Disk erases the whole USB as FAT32/GPT named OPENCORE — do not use that on this Sequoia stick.</p>
             <div class="update-hub-actions" style="margin-top:12px;">
               <button id="btn-refresh-usb" class="btn btn-secondary">Refresh USB list</button>
               <button id="btn-copy-efi" class="btn btn-primary" disabled>Copy EFI to selected volume</button>

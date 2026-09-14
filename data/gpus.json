@@ -143,8 +143,8 @@
       "family": "AMD APU",
       "vendor": "AMD",
       "support": "community",
-      "examples": ["Vega 8", "Vega 11", "660M", "680M", "780M"],
-      "aliases": ["nootedred", "680m", "vega8"],
+      "examples": ["Vega 8", "Vega 11", "2200G", "3400G", "3400GE", "5600G", "660M", "680M", "780M"],
+      "aliases": ["nootedred", "680m", "vega8", "vega 11", "vega11", "3400g", "3400ge", "picasso", "renoir", "cezanne"],
       "bootArgs": [
         {"arg": "npci=0x2000", "required": false, "reason": "Common AM4/AM5 PCI enumeration workaround."}
       ],

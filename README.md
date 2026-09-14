@@ -30,6 +30,21 @@ open "macos-dist/OpenCore Studio.app"
 
 First launch seeds Application Support, then asks which OpenCore version to apply. Caches, installer downloads, and update state live in `~/Library/Application Support/OpenCore Studio`.
 
+## Share between Macs
+
+GitHub is the repo. Use rsync when you want EFI / `config.plist` (and a live source tree) on another Mac or a USB/NAS folder:
+
+```bash
+./sync-share.sh init          # creates share/remote.conf
+# edit share/remote.conf — default is /Volumes/tools/OpenCoreStudioShare
+./sync-share.sh push          # this Mac -> share
+./sync-share.sh pull          # share -> this Mac
+./sync-share.sh export-efi    # copy the last EFI build into share/efi
+./sync-share.sh push efi
+```
+
+For SSH, set `REMOTE=user@other-mac.local` and `REMOTE_PATH=/path/on/that/mac`. Pull/push never delete extra files on the other side unless you add that later.
+
 ## Layout
 
 | Path | Role |

@@ -5,7 +5,7 @@
   "architecture": "AMD",
   "cpuFamily": "Ryzen G-series APUs (Vega / RDNA2 iGPU)",
   "chipsets": ["B450", "B550", "A520", "X570"],
-  "examples": ["2200G", "3400G", "4650G", "5600G", "5700G"],
+  "examples": ["2200G", "3400G", "3400GE", "4650G", "5600G", "5700G"],
   "searchTerms": ["apu", "nootedred", "vega 8", "g-series"],
   "description": "APU iGPU path. Uses NootedRed and must not load WhateverGreen.",
   "recommendedSmbios": {"default": "iMacPro1,1"},

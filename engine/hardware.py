@@ -48,17 +48,50 @@ def get_gpu(gpu_id: str) -> dict[str, Any] | None:
 
 
 def normalize_cpu_query(raw: str) -> str:
-    text = str(raw or "").strip().upper()
+    """Turn 'AMD Ryzen 5 3400GE' / 'i7-10700K' into a compact SKU (3400GE, I7-10700K)."""
+    text = str(raw or "").strip().upper().replace("®", "").replace("™", "")
+    text = re.sub(r"[,()/]", " ", text)
+
+    ryzen = re.search(
+        r"\b(?:AMD\s+)?(?:RYZEN\s+)?R?([3579])\s*-?\s*([0-9]{4}[A-Z]{0,3})\b",
+        text,
+    )
+    if ryzen:
+        return ryzen.group(2)
+
+    intel = re.search(r"\b(I[3579])[-\s]?([0-9]{3,5}[A-Z]{0,3})\b", text)
+    if intel:
+        return f"{intel.group(1)}-{intel.group(2)}"
+
+    xeon_w = re.search(r"\bW[-\s]?([0-9]{4}[A-Z]*)\b", text)
+    if xeon_w:
+        return f"W-{xeon_w.group(1)}"
+
+    ultra = re.search(r"\bULTRA\s*([579])\s*-?\s*([0-9]{3}[A-Z]*)\b", text)
+    if ultra:
+        return f"ULTRA{ultra.group(1)}-{ultra.group(2)}"
+
     text = re.sub(r"\b(INTEL|AMD|XEON|CORE|RYZEN|THREADRIPPER|PROCESSOR|CPU)\b", " ", text)
-    text = text.replace("CORE-", "").replace("CORE ", "")
-    text = re.sub(r"\s+", " ", text).strip()
-    text = text.replace(" ", "")
-    # Keep a hyphen in common Intel/Xeon SKUs: W2133 -> W-2133, I710700K -> i7-10700K
-    text = re.sub(r"^(W)(\d{4}[A-Z]*)$", r"\1-\2", text)
-    text = re.sub(r"^(I[3579]|I9)(\d{3,5}[A-Z]*)$", r"\1-\2", text)
-    text = re.sub(r"^(E[357])(\d{4}[A-Z]*)$", r"\1-\2", text)
-    text = re.sub(r"^R[3579]-?", "", text)
+    text = re.sub(r"\s+", " ", text).strip().replace(" ", "")
+    text = re.sub(r"^(W)([0-9]{4}[A-Z]*)$", r"\1-\2", text)
+    text = re.sub(r"^(I[3579])([0-9]{3,5}[A-Z]*)$", r"\1-\2", text)
     return text
+
+
+_PROFILE_GPU = {
+    "amd_apu_nooted": "amd_apu",
+    "intel_haswell": "intel_hd_5x00",
+    "intel_skylake": "intel_hd_5x00",
+    "intel_kaby_lake": "intel_uhd_630",
+    "intel_coffee_lake": "intel_uhd_630",
+    "intel_comet_lake": "intel_uhd_630",
+    "intel_alder_raptor": "intel_uhd_7x0",
+    "intel_meteor_lake": "intel_uhd_7x0",
+}
+
+
+def _suggested_gpu(profile_id: str, extra: str | None = None) -> str:
+    return extra or _PROFILE_GPU.get(profile_id, "")
 
 
 def _profile_summary(profile_id: str) -> dict[str, Any] | None:
@@ -98,6 +131,7 @@ def match_cpu(query: str) -> dict[str, Any]:
                 "matchType": "model",
                 "cpu": model,
                 "profile": summary,
+                "suggestedGpuId": _suggested_gpu(model["profileId"], model.get("suggestedGpuId")),
             }
 
     for rule in catalog.get("rules") or []:
@@ -112,6 +146,7 @@ def match_cpu(query: str) -> dict[str, Any]:
                     "matchType": "rule",
                     "rule": rule.get("label") or pattern,
                     "profile": summary,
+                    "suggestedGpuId": _suggested_gpu(rule["profileId"], rule.get("suggestedGpuId")),
                 }
         except re.error:
             continue
@@ -133,6 +168,7 @@ def match_cpu(query: str) -> dict[str, Any]:
                 "normalized": needle,
                 "matchType": "profile-text",
                 "profile": profile,
+                "suggestedGpuId": _suggested_gpu(str(profile.get("id") or "")),
             }
 
     return {

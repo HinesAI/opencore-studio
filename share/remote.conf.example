@@ -1,0 +1,8 @@
+# Copy to remote.conf and edit. Never commit remote.conf.
+#
+# Shared folder both Macs can see (USB, NAS, /Volumes/tools, …):
+REMOTE=/Volumes/tools/OpenCoreStudioShare
+#
+# Or SSH to the other Mac:
+# REMOTE=jay@mac-pro.local
+# REMOTE_PATH=/Users/jay/OpenCoreStudioShare
