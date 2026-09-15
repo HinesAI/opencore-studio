@@ -1515,3 +1515,39 @@ input:checked + .slider:before {
 
 .text-muted { color: var(--text-muted); }
 .text-subtle { color: var(--text-subtle); font-size: 0.75rem; }
+
+.troubleshoot-card {
+  margin-top: 20px;
+}
+
+.troubleshoot-symptoms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.troubleshoot-chip {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-main);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.troubleshoot-chip.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.diag-INFO {
+  background: rgba(88, 166, 255, 0.08);
+  border: 1px solid rgba(88, 166, 255, 0.28);
+  color: #9ecbff;
+}
+
+.diag-item a {
+  color: inherit;
+}

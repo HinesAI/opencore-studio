@@ -62,8 +62,16 @@ def _is_usb_like(info: dict[str, Any]) -> bool:
     return protocol in ("usb", "secure digital", "thunderbolt")
 
 
+def _dev_ident(device: str) -> str:
+    """Normalize diskutil ids. Do not use str.lstrip('/dev/') — it also strips the 'd' in diskN."""
+    ident = str(device or "").strip()
+    if ident.startswith("/dev/"):
+        ident = ident[5:]
+    return ident
+
+
 def _mount_device(ident: str) -> str:
-    ident = str(ident or "").lstrip("/dev/")
+    ident = _dev_ident(ident)
     if not ident.startswith("disk"):
         return ""
     info = _diskutil_plist(["info", ident])
@@ -87,10 +95,9 @@ def _mount_device(ident: str) -> str:
 
 
 def _whole_disk_id(ident: str) -> str:
-    ident = str(ident or "").lstrip("/dev/")
-    if ident.startswith("disk") and "s" in ident[4:]:
-        return ident.split("s", 1)[0]
-    return ident
+    ident = _dev_ident(ident)
+    match = re.match(r"(disk\d+)", ident)
+    return match.group(1) if match else ident
 
 
 def _efi_partition_for_disk(whole: str) -> str:
@@ -120,7 +127,7 @@ def _ensure_external_efi_volumes() -> list[dict[str, Any]]:
     listing = _diskutil_plist(["list", "external"])
     for disk in listing.get("AllDisksAndPartitions") or []:
         ident = str(disk.get("DeviceIdentifier") or "")
-        if not ident.startswith("disk") or "s" in ident[4:]:
+        if not re.fullmatch(r"disk\d+", ident):
             continue
         info = _diskutil_plist(["info", ident])
         if info.get("Internal") or not _is_usb_like(info):
@@ -212,7 +219,7 @@ def list_usb_targets() -> dict[str, Any]:
     listing = _diskutil_plist(["list", "external"])
     for disk in listing.get("AllDisksAndPartitions") or []:
         ident = disk.get("DeviceIdentifier")
-        if not ident or "s" in str(ident)[4:]:
+        if not ident or not re.fullmatch(r"disk\d+", str(ident)):
             continue
         info = _diskutil_plist(["info", ident])
         if info.get("Internal") or not _is_usb_like(info):
@@ -284,6 +291,41 @@ def _merge_efi_folder(efi_src: Path, dest_efi: Path) -> None:
             shutil.copy2(child, target)
 
 
+def require_external_whole_disk(device: str) -> dict[str, Any]:
+    ident = _dev_ident(device)
+    if not re.fullmatch(r"disk\d+", ident):
+        return {"success": False, "error": "Select a whole disk (diskN), not a partition (diskNsM)."}
+    info = _diskutil_plist(["info", ident])
+    if not info:
+        return {"success": False, "error": f"diskutil could not inspect {ident}."}
+    if info.get("Internal"):
+        return {"success": False, "error": "Refusing to erase an internal disk."}
+    if not _is_usb_like(info):
+        return {"success": False, "error": f"{ident} does not look like removable USB storage."}
+    size = int(info.get("TotalSize") or 0)
+    return {
+        "success": True,
+        "ident": ident,
+        "info": info,
+        "name": info.get("MediaName") or ident,
+        "size": size,
+        "sizeLabel": f"{size / (1000 ** 3):.1f} GB" if size else "unknown",
+    }
+
+
+def copy_efi_to_disk_esp(device: str) -> dict[str, Any]:
+    """Mount the ESP of a whole disk and merge the built OpenCore EFI."""
+    ident = _dev_ident(device)
+    whole = _whole_disk_id(ident)
+    efi_id = _efi_partition_for_disk(whole)
+    if not efi_id:
+        return {"success": False, "error": f"No EFI partition found on {whole}."}
+    mount = _mount_device(efi_id)
+    if not mount:
+        return {"success": False, "error": f"Could not mount EFI partition {efi_id}. Approve the admin prompt if it appears."}
+    return copy_efi_to_volume(mount)
+
+
 def copy_efi_to_volume(mount_point: str) -> dict[str, Any]:
     manifest = last_manifest()
     if not manifest.get("success"):
@@ -323,8 +365,8 @@ def prepare_usb_and_copy(device: str, confirm: str) -> dict[str, Any]:
     """Erase an external disk as FAT32/GPT named OPENCORE, then copy EFI."""
     if str(confirm or "").strip() != "ERASE":
         return {"success": False, "error": "Pass confirm='ERASE' to wipe the selected external disk."}
-    ident = str(device or "").strip().lstrip("/dev/")
-    if not ident.startswith("disk") or "s" in ident[4:]:
+    ident = _dev_ident(device)
+    if not re.fullmatch(r"disk\d+", ident):
         return {"success": False, "error": "Select a whole disk (diskN), not a partition (diskNsM)."}
     info = _diskutil_plist(["info", ident])
     if not info:

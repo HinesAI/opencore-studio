@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .troubleshooter import usb_setup_findings
+
 
 def validate_config(pl: dict[str, Any], hardware_info: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
@@ -90,21 +92,7 @@ def validate_config(pl: dict[str, Any], hardware_info: dict[str, Any] | None = N
             "remedy": "Disable WhateverGreen when using NootedRed for AMD APU graphics."
         })
 
-    # 2. XhciPortLimit check
-    xhci_port_limit = pl.get("Kernel", {}).get("Quirks", {}).get("XhciPortLimit", False)
-    if xhci_port_limit:
-        results.append({
-            "level": "WARN",
-            "section": "Kernel -> Quirks",
-            "message": "XhciPortLimit is ENABLED. On macOS 11.3+, this causes boot loops or freezes.",
-            "remedy": "Set XhciPortLimit to False and use a proper USB map kext (UTBMap.kext or USBMap.kext)."
-        })
-    else:
-        results.append({
-            "level": "PASS",
-            "section": "Kernel -> Quirks",
-            "message": "XhciPortLimit is disabled (safe for macOS 11.3+)."
-        })
+    results.extend(usb_setup_findings({"config": pl, "hardwareInfo": hardware_info}))
 
     # 3. Boot-args check
     nvram_add = pl.get("NVRAM", {}).get("Add", {}).get("7C436110-AB2A-4BBB-A880-FE41995C9F82", {})

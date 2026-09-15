@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenCore Studio — Next-Gen EFI & Plist Builder</title>
-  <link rel="stylesheet" href="studio.css?v=step-fit">
+  <link rel="stylesheet" href="studio.css?v=troubleshoot">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -443,6 +443,7 @@
           <!-- Diagnostics Checklist Panel -->
           <div class="diagnostics-panel">
             <h3>Pre-Flight Safety Checks</h3>
+            <div id="usb-sync-status" class="cpu-match-result">Open the Plist tab to compile config.plist and check USB kexts.</div>
             <div id="diagnostics-list" class="diagnostics-list">
               <div class="diag-item diag-loading">Running diagnostics...</div>
             </div>
@@ -472,13 +473,28 @@
             <pre class="plist-code-display"><code id="plist-code-content">&lt;!-- Generating OpenCore config.plist... --&gt;</code></pre>
           </div>
         </div>
+
+        <div class="card troubleshoot-card" id="troubleshoot-card">
+          <h3>Boot troubleshooter</h3>
+          <p class="text-subtle">Suggestions follow <a href="https://dortania.github.io/OpenCore-Install-Guide/troubleshooting/extended/kernel-issues.html" target="_blank" rel="noopener">Dortania’s kernel issues</a> and <a href="https://dortania.github.io/OpenCore-Post-Install/usb/" target="_blank" rel="noopener">USB mapping</a> guides. Paste a verbose line or pick what you saw. USBToolBox without your own map is a common installer halt.</p>
+          <div id="troubleshoot-symptoms" class="troubleshoot-symptoms"></div>
+          <label class="form-group" style="margin-top:12px;">
+            Verbose log snippet
+            <textarea id="troubleshoot-log" class="input-textarea font-mono" rows="4" placeholder="Paste OpenCore / installer text — e.g. USB kext wasn't loaded, Waiting for Root Device, EXITBS:START"></textarea>
+          </label>
+          <div class="update-hub-actions" style="margin-top:10px;">
+            <button type="button" id="btn-troubleshoot" class="btn btn-secondary">Suggest from log / symptom</button>
+            <button type="button" id="btn-troubleshoot-apply" class="btn btn-primary">Apply installer-safe USB setup</button>
+          </div>
+          <div id="troubleshoot-results" class="cpu-match-result" style="margin-top:12px;white-space:pre-wrap;">Nothing is changed until you click Apply. That drops USBToolBox/UTBMap from this config (there is no generic map), sets XhciPortLimit off, and turns ReleaseUsbOwnership on. Then rebuild EFI and copy it — the plist tab is the source of truth, not the stick, until you copy.</div>
+        </div>
       </section>
 
       <!-- TAB 7: Build EFI / USB -->
       <section id="tab-usb" class="tab-pane">
         <div class="pane-header">
           <h2>Build Bootable OpenCore EFI / USB</h2>
-          <p>Downloads the OpenCore RELEASE package, your selected kexts, and compiled SSDTs, then writes a complete <code>EFI/</code> folder. macOS itself is not installed — this stick only boots the OpenCore picker so you can install or run macOS from another volume.</p>
+          <p>Assemble OpenCore, copy it to a stick, or write a full macOS installer USB and put OpenCore on the EFI partition. Do not FAT32-erase a stick you want to keep as a macOS installer.</p>
         </div>
 
         <div class="card macos-catalog-card">
@@ -541,6 +557,26 @@
             <div id="usb-write-log" class="cpu-match-result" style="margin-top:10px;"></div>
           </div>
         </div>
+
+        <div class="card macos-catalog-card" style="margin-top:16px;">
+          <h3>3. Make macOS + OpenCore installer</h3>
+          <p class="text-subtle">Uses the macOS pkg you downloaded above and the EFI folder from step 1. This runs Apple’s <code>createinstallmedia</code> (admin password), which wipes the selected USB, then copies OpenCore onto the EFI partition so Sequoia/Sonoma/etc. stay intact. Type <strong>INSTALL</strong> to confirm. 16 GB+ stick. 10–40 minutes.</p>
+          <div class="form-group" style="margin-top:12px;">
+            <label>USB to wipe and convert</label>
+            <select id="macos-usb-disk-select" class="input-select">
+              <option value="">No whole disk selected</option>
+            </select>
+          </div>
+          <div class="input-with-action" style="margin-top:8px;">
+            <input type="text" id="macos-usb-confirm" class="input-text" placeholder="Type INSTALL to wipe this USB and write macOS + OpenCore">
+            <button id="btn-macos-usb" class="btn btn-primary">Write macOS + OpenCore</button>
+          </div>
+          <div class="macos-progress" id="macos-usb-progress" hidden>
+            <div class="macos-progress-track"><div id="macos-usb-progress-bar" class="macos-progress-bar"></div></div>
+            <div id="macos-usb-progress-label" class="macos-progress-label"></div>
+          </div>
+          <div id="macos-usb-log" class="cpu-match-result" style="margin-top:10px;">Download an installer, build EFI, pick a USB, then type INSTALL.</div>
+        </div>
       </section>
 
     </main>
@@ -550,6 +586,6 @@
     <div id="toast" class="toast">Action completed</div>
   </div>
 
-  <script src="studio.js?v=step-fit"></script>
+  <script src="studio.js?v=troubleshoot"></script>
 </body>
 </html>

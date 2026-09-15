@@ -22,6 +22,10 @@ fi
 
 mkdir -p "${APP_ROOT}" "${APP_PATH}/Contents/MacOS"
 
+if [[ -f "${SCRIPT_DIR}/macos-native/Info.plist" ]]; then
+    cp "${SCRIPT_DIR}/macos-native/Info.plist" "${INFO_PLIST}"
+fi
+
 echo "--> Syncing engine, UI, and bundled data into the app…"
 rsync -a --delete \
     --exclude '__pycache__/' \

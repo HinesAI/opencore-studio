@@ -19,6 +19,7 @@ from engine.bootstrap import choose_first_open, prepare_first_open
 from engine.paths import work_dir
 from engine.macos_catalog import list_macos_installers
 from engine.macos_downloader import cancel_download, download_status, remove_partial, start_download
+from engine.macos_usb import start_macos_usb, usb_job_status
 from engine.hardware import gpu_apply_plan, list_gpus, match_cpu, match_gpu
 from engine.kext_manager import (
     add_custom_repo,
@@ -36,6 +37,7 @@ from engine.profiles import (
 from engine.smbios import generate_smbios
 from engine.updater import apply_updates, check_updates, local_status, rollback_updates
 from engine.usb_writer import copy_efi_to_volume, list_usb_targets, prepare_usb_and_copy
+from engine.troubleshooter import list_symptoms, run_troubleshoot
 from engine.validator import validate_config
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -158,6 +160,17 @@ class OpenCoreStudioHandler(SimpleHTTPRequestHandler):
                 self._send_json({"success": False, "error": str(e)}, status=500)
             return
 
+        if path == "/api/macos/usb/status":
+            try:
+                self._send_json(usb_job_status())
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
+        if path == "/api/troubleshoot":
+            self._send_json(list_symptoms())
+            return
+
         if path == "/api/efi/status":
             self._send_json(last_manifest())
             return
@@ -257,6 +270,13 @@ class OpenCoreStudioHandler(SimpleHTTPRequestHandler):
             self._send_json({"success": True, "validation": results})
             return
 
+        if path == "/api/troubleshoot":
+            try:
+                self._send_json(run_troubleshoot(self._read_json_body()))
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
         if path == "/api/repos":
             body = self._read_json_body()
             try:
@@ -342,6 +362,19 @@ class OpenCoreStudioHandler(SimpleHTTPRequestHandler):
             body = self._read_json_body()
             try:
                 res = remove_partial(body.get("id") or body.get("installerId") or "")
+                self._send_json(res, status=200 if res.get("success") else 400)
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
+        if path == "/api/macos/usb":
+            body = self._read_json_body()
+            try:
+                res = start_macos_usb(
+                    body.get("device") or "",
+                    body.get("id") or body.get("installerId") or "",
+                    body.get("confirm") or "",
+                )
                 self._send_json(res, status=200 if res.get("success") else 400)
             except Exception as e:
                 self._send_json({"success": False, "error": str(e)}, status=500)

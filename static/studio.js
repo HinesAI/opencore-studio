@@ -1280,6 +1280,9 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       hardwareInfo: {
         cpuFamily: state.currentProfile?.cpuFamily || "",
+        architecture: state.currentProfile?.architecture || "",
+        profileId: state.currentProfileId,
+        gpuId: state.gpuId || "",
         gpuType: state.bootArgs.includes("agdpmod=pikera") ? "AMD Navi RX 6000" : "Intel UHD"
       }
     };
@@ -1307,8 +1310,10 @@ document.addEventListener("DOMContentLoaded", () => {
         statPatches.textContent = res.patchCount;
 
         renderDiagnostics(res.validation);
+        renderUsbSyncStatus(res.xml, res.validation);
         saveSession();
         refreshStepper();
+        runTroubleshoot({ silent: true });
       } else {
         plistCodeContent.textContent = `<!-- Build Error: ${res.error} -->`;
       }
@@ -1334,11 +1339,149 @@ document.addEventListener("DOMContentLoaded", () => {
           <span>[${c.level}] ${c.section}</span>
         </div>
         <div>${c.message}</div>
-        ${c.remedy ? `<div class="diag-remedy">&rarr; Fix: ${c.remedy}</div>` : ''}
+        ${c.remedy ? `<div class="diag-remedy">&rarr; Fix: ${c.remedy}</div>` : ""}
+        ${c.guide ? `<div class="diag-remedy"><a href="${c.guide}" target="_blank" rel="noopener">Dortania guide</a></div>` : ""}
       `;
       diagnosticsList.appendChild(item);
     });
   }
+
+  let troubleshootFixes = {};
+  const selectedSymptoms = new Set();
+
+  function plistUsbEvidence(xml) {
+    const text = xml || "";
+    return {
+      usbToolBox: text.includes("USBToolBox.kext"),
+      utbMap: text.includes("UTBMap.kext"),
+      xhciOn: /<key>XhciPortLimit<\/key>\s*<true\/>/i.test(text),
+      releaseUsbOn: /<key>ReleaseUsbOwnership<\/key>\s*<true\/>/i.test(text)
+    };
+  }
+
+  function renderUsbSyncStatus(xml, validation) {
+    const el = document.getElementById("usb-sync-status");
+    const applyBtn = document.getElementById("btn-troubleshoot-apply");
+    if (!el) return;
+    const ev = plistUsbEvidence(xml);
+    const selectedBox = state.selectedKexts.has("USBToolBox");
+    const selectedMap = state.selectedKexts.has("UTBMap");
+    const selectedXhci = !!state.quirks.Kernel?.XhciPortLimit;
+    const kextsSynced = selectedBox === ev.usbToolBox && selectedMap === ev.utbMap;
+    const xhciSynced = selectedXhci === ev.xhciOn;
+    const usbFail = (validation || []).some((item) => item.level === "FAIL" && /usb/i.test(`${item.section} ${item.message}`));
+    const installerUnsafe = ev.usbToolBox || ev.utbMap || ev.xhciOn;
+    if (applyBtn) {
+      applyBtn.disabled = !installerUnsafe && !selectedBox && !selectedMap;
+      applyBtn.textContent = installerUnsafe || selectedBox || selectedMap
+        ? "Apply installer-safe USB setup"
+        : "USB setup already installer-safe";
+    }
+    const lines = [
+      `Kext picks → plist: ${kextsSynced && xhciSynced ? "in sync" : "out of sync"}`,
+      `USBToolBox.kext in plist: ${ev.usbToolBox ? "YES (will inject)" : "no"}`,
+      `UTBMap.kext in plist: ${ev.utbMap ? "YES (file is not shipped)" : "no"}`,
+      `XhciPortLimit: ${ev.xhciOn ? "true (bad on 11.3+)" : "false"}`,
+      `ReleaseUsbOwnership: ${ev.releaseUsbOn ? "true" : "false"}`
+    ];
+    el.className = `cpu-match-result ${installerUnsafe || usbFail ? "match-miss" : kextsSynced ? "match-ok" : ""}`;
+    el.style.whiteSpace = "pre-wrap";
+    el.textContent = lines.join("\n");
+  }
+
+  function applyInstallerSafeUsb() {
+    const fixes = troubleshootFixes && ((troubleshootFixes.removeKexts || []).length || Object.keys(troubleshootFixes.setQuirks || {}).length)
+      ? troubleshootFixes
+      : {
+          removeKexts: ["USBToolBox", "UTBMap", "USBInjectAll"],
+          setQuirks: { Kernel: { XhciPortLimit: false }, UEFI: { ReleaseUsbOwnership: true } },
+          addBootArgs: []
+        };
+    (fixes.removeKexts || []).forEach((id) => state.selectedKexts.delete(id));
+    Object.entries(fixes.setQuirks || {}).forEach(([group, values]) => {
+      state.quirks[group] = Object.assign({}, state.quirks[group] || {}, values);
+    });
+    (fixes.addBootArgs || []).forEach((arg) => {
+      if (!(state.bootArgs || "").includes(arg)) state.bootArgs = `${state.bootArgs} ${arg}`.trim();
+    });
+    if (bootArgsInput) bootArgsInput.value = state.bootArgs;
+    renderKexts();
+    renderQuirks();
+    saveSession();
+    showToast("Dropped USB map kexts in Studio. Plist will recompile — rebuild EFI to put this on the stick.");
+    buildAndRefreshPlist();
+  }
+
+  function renderTroubleshootSymptoms(symptoms) {
+    const wrap = document.getElementById("troubleshoot-symptoms");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    (symptoms || []).forEach((item) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "troubleshoot-chip";
+      chip.textContent = item.title;
+      chip.title = item.blurb || "";
+      chip.addEventListener("click", () => {
+        if (selectedSymptoms.has(item.id)) {
+          selectedSymptoms.delete(item.id);
+          chip.classList.remove("active");
+        } else {
+          selectedSymptoms.add(item.id);
+          chip.classList.add("active");
+        }
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  function renderTroubleshoot(res) {
+    const box = document.getElementById("troubleshoot-results");
+    const applyBtn = document.getElementById("btn-troubleshoot-apply");
+    if (!box) return;
+    const findings = res && res.findings ? res.findings : [];
+    const hasFix = res && res.fixes && ((res.fixes.removeKexts || []).length || Object.keys(res.fixes.setQuirks || {}).length || (res.fixes.addBootArgs || []).length);
+    troubleshootFixes = (res && res.fixes) || {};
+    if (applyBtn) applyBtn.hidden = false;
+    if (!res || !res.success) {
+      box.className = "cpu-match-result match-miss";
+      box.textContent = (res && res.error) || "Troubleshooter failed.";
+      return;
+    }
+    const fails = findings.some((item) => item.level === "FAIL");
+    box.className = `cpu-match-result ${fails ? "match-miss" : findings.length ? "match-ok" : ""}`;
+    const lines = [res.summary || ""];
+    findings.forEach((item) => {
+      lines.push(`[${item.level}] ${item.section}: ${item.message}`);
+      if (item.remedy) lines.push(`  → ${item.remedy}`);
+      if (item.guide) lines.push(`  ${item.guide}`);
+    });
+    box.textContent = lines.filter(Boolean).join("\n");
+  }
+
+  async function runTroubleshoot(opts = {}) {
+    const payload = studioBuildPayload();
+    payload.log = document.getElementById("troubleshoot-log")?.value || "";
+    payload.symptomIds = Array.from(selectedSymptoms);
+    try {
+      const res = await fetch("/api/troubleshoot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).then((r) => r.json());
+      renderTroubleshoot(res);
+      if (!opts.silent && res.summary) showToast(res.summary);
+    } catch (err) {
+      renderTroubleshoot({ success: false, error: String(err) });
+    }
+  }
+
+  document.getElementById("btn-troubleshoot")?.addEventListener("click", () => runTroubleshoot());
+  document.getElementById("btn-troubleshoot-apply")?.addEventListener("click", applyInstallerSafeUsb);
+
+  fetch("/api/troubleshoot").then((r) => r.json()).then((data) => {
+    if (data && data.symptoms) renderTroubleshootSymptoms(data.symptoms);
+  }).catch(() => {});
 
   // Download & Copy Plist
   async function triggerDownloadPlist() {
@@ -1697,12 +1840,25 @@ document.addEventListener("DOMContentLoaded", () => {
         list.textContent = "No external volumes mounted. Plug in a USB stick and refresh. You can also Prepare a whole disk below.";
       }
       diskSelect.innerHTML = '<option value="">No whole disk selected</option>';
+      const macosDisk = document.getElementById("macos-usb-disk-select");
+      const previousMacosDisk = macosDisk ? macosDisk.value : "";
+      if (macosDisk) macosDisk.innerHTML = '<option value="">No whole disk selected</option>';
       (res.disks || []).forEach(d => {
+        const label = `${d.device} — ${d.name} (${Math.round((d.size || 0) / 1e9)} GB)`;
         const opt = document.createElement("option");
         opt.value = d.device;
-        opt.textContent = `${d.device} — ${d.name} (${Math.round((d.size || 0) / 1e9)} GB)`;
+        opt.textContent = label;
         diskSelect.appendChild(opt);
+        if (macosDisk) {
+          const opt2 = document.createElement("option");
+          opt2.value = d.device;
+          opt2.textContent = label;
+          macosDisk.appendChild(opt2);
+        }
       });
+      if (macosDisk && previousMacosDisk && [...macosDisk.options].some((o) => o.value === previousMacosDisk)) {
+        macosDisk.value = previousMacosDisk;
+      }
     } catch (err) {
       list.textContent = `Could not list volumes: ${err}`;
     }
@@ -1766,6 +1922,66 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast(res.success ? "USB prepared and EFI copied." : (res.error || "Prepare failed"));
     refreshUsbTargets();
   });
+
+  let macosUsbTimer = null;
+  function renderMacosUsbJob(job) {
+    const box = document.getElementById("macos-usb-log");
+    const wrap = document.getElementById("macos-usb-progress");
+    const bar = document.getElementById("macos-usb-progress-bar");
+    const label = document.getElementById("macos-usb-progress-label");
+    const btn = document.getElementById("btn-macos-usb");
+    if (!box || !job) return;
+    const running = job.status === "running";
+    if (btn) btn.disabled = running;
+    if (wrap) wrap.hidden = !(running || job.status === "done" || job.status === "error");
+    if (bar) bar.style.width = `${job.percent || 0}%`;
+    if (label) label.textContent = job.message || job.step || "";
+    box.className = `cpu-match-result ${job.status === "done" ? "match-ok" : job.status === "error" ? "match-miss" : ""}`;
+    const text = (job.log || job.message || job.error || "").trim();
+    box.textContent = text || "Download an installer, build EFI, pick a USB, then type INSTALL.";
+  }
+
+  async function pollMacosUsb() {
+    try {
+      const job = await fetch("/api/macos/usb/status").then((r) => r.json());
+      renderMacosUsbJob(job);
+      if (job.status === "running") {
+        if (!macosUsbTimer) macosUsbTimer = setInterval(pollMacosUsb, 2000);
+      } else if (macosUsbTimer) {
+        clearInterval(macosUsbTimer);
+        macosUsbTimer = null;
+        if (job.status === "done") refreshUsbTargets();
+      }
+    } catch (err) {
+      const box = document.getElementById("macos-usb-log");
+      if (box) box.textContent = `Could not read USB write status: ${err}`;
+    }
+  }
+
+  document.getElementById("btn-macos-usb")?.addEventListener("click", async () => {
+    const box = document.getElementById("macos-usb-log");
+    const device = document.getElementById("macos-usb-disk-select")?.value || "";
+    const confirm = (document.getElementById("macos-usb-confirm")?.value || "").trim();
+    const installerId = state.selectedMacosId;
+    if (!installerId) {
+      if (box) box.textContent = "Select a macOS version in the catalog (and download it) first.";
+      return;
+    }
+    if (!device) {
+      if (box) box.textContent = "Select a whole external USB disk.";
+      return;
+    }
+    const res = await fetch("/api/macos/usb", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device, installerId, confirm })
+    }).then((r) => r.json());
+    renderMacosUsbJob(res);
+    if (res.status === "running") pollMacosUsb();
+    showToast(res.success ? "Approve the macOS password dialog if it appears." : (res.error || "Could not start"));
+  });
+
+  pollMacosUsb();
 
   btnValidate.addEventListener("click", () => {
     goToTab("preview");
