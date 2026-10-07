@@ -44,6 +44,13 @@ rsync -a --delete \
     "${SCRIPT_DIR}/data/" "${APP_ROOT}/data/"
 cp "${SCRIPT_DIR}/app.py" "${APP_ROOT}/app.py"
 
+if [[ -f "${SCRIPT_DIR}/macos-native/AppIcon.png" ]]; then
+    cp "${SCRIPT_DIR}/macos-native/AppIcon.png" "${APP_PATH}/Contents/Resources/AppIcon.png"
+fi
+if [[ -f "${SCRIPT_DIR}/macos-native/AppIcon.icns" ]]; then
+    cp "${SCRIPT_DIR}/macos-native/AppIcon.icns" "${APP_PATH}/Contents/Resources/AppIcon.icns"
+fi
+
 if command -v /usr/libexec/PlistBuddy &>/dev/null; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable OpenCoreStudioNative" "${INFO_PLIST}" 2>/dev/null \
         || /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string OpenCoreStudioNative" "${INFO_PLIST}"

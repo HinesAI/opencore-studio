@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-10-07T00:00:00Z",
+  "patches": [
+    {
+      "id": "hpet-crs-xcrs",
+      "comment": "HPET _CRS to XCRS Rename",
+      "category": "hpet",
+      "source": "SSDTTime / Dell T5810 EFI",
+      "description": "Renames HPET Name(_CRS) to XCRS so SSDT-HPET can inject a conflict-free _CRS. Required whenever SSDT-HPET.aml is enabled. Uses the known-working Dell X99 bytes (NameOp prefix), not Sample.plist's scoped LPCB path.",
+      "requiresSsdt": "SSDT-HPET.aml",
+      "findHex": "065F435253",
+      "replaceHex": "0658435253",
+      "base": "",
+      "count": 0
+    },
+    {
+      "id": "tmr-irq-0",
+      "comment": "TMR IRQ 0 Patch",
+      "category": "hpet",
+      "source": "SSDTTime / Dell T5810 EFI",
+      "description": "Clears IRQ 0 from the ACPI timer (TMR/TIMR) so it no longer fights HPET. Companion to SSDT-HPET.",
+      "requiresSsdt": "SSDT-HPET.aml",
+      "findHex": "2201007900",
+      "replaceHex": "2200007900",
+      "base": "",
+      "count": 0
+    },
+    {
+      "id": "rtc-irq-8",
+      "comment": "RTC IRQ 8 Patch",
+      "category": "hpet",
+      "source": "SSDTTime / Dell T5810 EFI",
+      "description": "Clears IRQ 8 from RTC so HPET can own the IRQ. Companion to SSDT-HPET.",
+      "requiresSsdt": "SSDT-HPET.aml",
+      "findHex": "2200017900",
+      "replaceHex": "2200007900",
+      "base": "",
+      "count": 0
+    }
+  ]
+}

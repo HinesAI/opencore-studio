@@ -131,6 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         window.delegate = self
 
         let config = WKWebViewConfiguration()
+        config.websiteDataStore = WKWebsiteDataStore.default()
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
         studioBridge.owner = self
@@ -251,6 +252,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let command = (body as? String) ?? ""
         if command == "loadPlist" {
             openConfigPlist()
+        } else if command == "loadSsdts" {
+            openAcpiTables()
         } else if command == "exportPlist" {
             exportConfigPlist()
         } else if command == "switchOpenCore" {
@@ -275,6 +278,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             return data
         }
         return xmlData
+    }
+
+    @objc func openAcpiTables() {
+        let panel = NSOpenPanel()
+        panel.title = "Load SSDTs / ACPI dump"
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.allowsOtherFileTypes = true
+        panel.allowedFileTypes = ["aml", "bin", "zip"]
+        panel.begin { [weak self] response in
+            guard response == .OK, let self = self else { return }
+            let destRoot = self.supportFile("pending-acpi")
+            try? FileManager.default.createDirectory(at: destRoot, withIntermediateDirectories: true)
+            for url in panel.urls {
+                let dest = destRoot.appendingPathComponent(url.lastPathComponent)
+                try? FileManager.default.removeItem(at: dest)
+                try? FileManager.default.copyItem(at: url, to: dest)
+            }
+            DispatchQueue.main.async {
+                self.webView.evaluateJavaScript("window.ocsImportPendingSsdts && window.ocsImportPendingSsdts()", completionHandler: nil)
+            }
+        }
     }
 
     @objc func openConfigPlist() {

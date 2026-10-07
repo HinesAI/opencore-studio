@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenCore Studio — Next-Gen EFI & Plist Builder</title>
-  <link rel="stylesheet" href="studio.css?v=troubleshoot">
+  <link rel="icon" href="logo.png">
+  <link rel="stylesheet" href="studio.css?v=user-ssdts">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -14,7 +15,7 @@
     <!-- Top Navigation Bar -->
     <header class="app-header">
       <div class="logo-group">
-        <div class="logo-icon"></div>
+        <img src="logo.png" alt="OpenCore Studio" class="logo-mark" width="48" height="48">
         <div>
           <h1 class="logo-title">OpenCore Studio</h1>
           <p class="logo-subtitle">Automated EFI & Plist Configuration Platform</p>
@@ -126,8 +127,14 @@
             </div>
 
             <div class="info-group">
-              <label>Mandatory ACPI SSDTs (Auto-Injected)</label>
+              <label>ACPI SSDTs for this profile</label>
+              <p class="text-subtle" style="margin:4px 0 8px;">Toggle each .aml on <button type="button" class="link-btn" id="btn-goto-ssdts">Kexts → ACPI SSDTs</button>. Enabled files go in EFI/OC/ACPI.</p>
               <ul id="panel-ssdts" class="ssdt-list"></ul>
+            </div>
+
+            <div class="info-group" id="panel-boot-notes-group" hidden>
+              <label>Boot notes for this profile</label>
+              <ul id="panel-boot-notes" class="ssdt-list"></ul>
             </div>
 
             <div id="amd-core-config-group" class="info-group" style="display:none;">
@@ -150,23 +157,28 @@
         </div>
       </section>
 
-      <!-- TAB 2: Kexts Catalog -->
+      <!-- TAB 2: Kexts & Drivers Catalog -->
       <section id="tab-kexts" class="tab-pane">
         <div class="pane-header-flex">
           <div>
-            <h2>Kext Catalog & Topological Ordering</h2>
-            <p>Select required kernel extensions. OpenCore Studio enforces strict load-ordering invariants (Lilu index 0, VirtualSMC before sensor plugins).</p>
+            <h2>Kexts, UEFI Drivers &amp; SSDTs</h2>
+            <p>Add or exclude kexts, OpenCore UEFI drivers, and ACPI SSDT .aml files. Enabled SSDTs are copied into EFI/OC/ACPI and listed under ACPI → Add. Missing files are omitted so OpenCore cannot halt.</p>
           </div>
           <div class="filter-controls">
-            <input type="text" id="kext-search" placeholder="Search kexts..." class="input-text">
+            <input type="text" id="kext-search" placeholder="Search kexts, drivers, and SSDTs..." class="input-text">
             <div class="category-filters" id="kext-categories">
               <button class="pill-btn active" data-cat="all">All</button>
               <button class="pill-btn" data-cat="core">Core</button>
               <button class="pill-btn" data-cat="graphics">Graphics</button>
               <button class="pill-btn" data-cat="audio">Audio</button>
-              <button class="pill-btn" data-cat="network">Network</button>
-              <button class="pill-btn" data-cat="wireless">Wireless</button>
-              <button class="pill-btn" data-cat="utility">Utility</button>
+              <button class="pill-btn" data-cat="ethernet">Ethernet</button>
+              <button class="pill-btn" data-cat="wifi">Wi-Fi</button>
+              <button class="pill-btn" data-cat="bluetooth">Bluetooth</button>
+              <button class="pill-btn" data-cat="usb">USB</button>
+              <button class="pill-btn" data-cat="storage">Storage</button>
+              <button class="pill-btn" data-cat="utilities">Utilities</button>
+              <button class="pill-btn" data-cat="input">Input</button>
+              <button class="pill-btn" data-cat="laptop">Laptop</button>
             </div>
           </div>
         </div>
@@ -176,9 +188,61 @@
           <span>OpenCore Kernel-Add list is topologically sorted: <strong>Lilu (0) &rarr; VirtualSMC (1) &rarr; Plugins &rarr; Graphics &rarr; Peripherals</strong></span>
         </div>
 
+        <div class="catalog-section-head">
+          <h3>Kernel extensions</h3>
+          <span id="kext-count-badge" class="badge badge-info">0</span>
+        </div>
         <div class="kext-cards-grid" id="kext-cards-container">
           <!-- Kext cards injected via JS -->
         </div>
+
+        <div class="catalog-section-head" style="margin-top:28px;">
+          <h3>UEFI drivers</h3>
+          <span id="driver-count-badge" class="badge badge-info">0</span>
+        </div>
+        <p class="text-subtle catalog-hint">Drivers that ship in the OpenCore zip can be toggled freely. ResetTSCAdjust.efi is listed only so you can see why it stays off — OpenCore 1.0.x does not include that file.</p>
+        <div class="category-filters" id="driver-categories">
+          <button class="pill-btn active" data-driver-cat="all">All</button>
+          <button class="pill-btn" data-driver-cat="required">Required</button>
+          <button class="pill-btn" data-driver-cat="picker">Picker</button>
+          <button class="pill-btn" data-driver-cat="filesystem">Filesystem</button>
+          <button class="pill-btn" data-driver-cat="usb">USB</button>
+          <button class="pill-btn" data-driver-cat="input">Input</button>
+          <button class="pill-btn" data-driver-cat="hedt">HEDT</button>
+        </div>
+        <div class="kext-cards-grid" id="driver-cards-container"></div>
+
+        <div class="catalog-section-head" style="margin-top:28px;">
+          <h3>ACPI SSDTs</h3>
+          <span id="ssdt-count-badge" class="badge badge-info">0</span>
+        </div>
+        <p class="text-subtle catalog-hint">These are the compiled .aml tables OpenCore loads from EFI/OC/ACPI. T5810 downloads are a fallback — a T7910 should load SSDTTime output from <em>this</em> machine (EC, HPET, PLUG, RTC0-RANGE). Your files win over T5810/Dortania copies. Do not inject DSDT or OEM SSDT-0/1 dump tables.</p>
+        <div class="filter-controls" style="margin-bottom:12px; gap:8px;">
+          <button type="button" id="btn-load-ssdts" class="btn btn-secondary">Load .aml or ACPI zip</button>
+          <input type="file" id="file-load-ssdts" class="file-input-hidden" accept=".aml,.bin,.zip,.AML,.BIN,.ZIP" multiple>
+          <span id="ssdt-upload-status" class="text-subtle"></span>
+        </div>
+        <div class="category-filters" id="ssdt-categories">
+          <button class="pill-btn active" data-ssdt-cat="all">All</button>
+          <button class="pill-btn" data-ssdt-cat="cpu">CPU</button>
+          <button class="pill-btn" data-ssdt-cat="ec">EC</button>
+          <button class="pill-btn" data-ssdt-cat="hedt">HEDT</button>
+          <button class="pill-btn" data-ssdt-cat="rtc">RTC</button>
+          <button class="pill-btn" data-ssdt-cat="usb">USB</button>
+          <button class="pill-btn" data-ssdt-cat="irq">IRQ</button>
+          <button class="pill-btn" data-ssdt-cat="laptop">Laptop</button>
+          <button class="pill-btn" data-ssdt-cat="amd">AMD</button>
+          <button class="pill-btn" data-ssdt-cat="pci">PCI</button>
+          <button class="pill-btn" data-ssdt-cat="custom">Your files</button>
+        </div>
+        <div class="kext-cards-grid" id="ssdt-cards-container"></div>
+
+        <div class="catalog-section-head" style="margin-top:28px;">
+          <h3>ACPI patches</h3>
+          <span id="acpi-patch-count-badge" class="badge badge-info">0</span>
+        </div>
+        <p class="text-subtle catalog-hint">Binary DSDT renames under ACPI → Patch. SSDT-HPET needs HPET <code>_CRS</code> → <code>XCRS</code> plus the TMR/RTC IRQ drops; those three turn on automatically with the SSDT. Sample.plist leftovers are not used.</p>
+        <div class="kext-cards-grid" id="acpi-patch-cards-container"></div>
       </section>
 
       <!-- TAB 3: Quirks & Boot Args -->
@@ -195,6 +259,34 @@
 
             <h3 style="margin-top:20px;">Kernel Quirks</h3>
             <div class="quirks-card" id="kernel-quirks-list"></div>
+
+            <h3 style="margin-top:20px;">Kernel → Emulate (CPUID)</h3>
+            <div class="boot-args-card" id="cpuid-card">
+              <p class="text-subtle">Haswell-E and Broadwell-E need a CPUID spoof for XCPM. Edit the hex, or pick a Dortania preset. Leave both fields empty on platforms that do not spoof.</p>
+              <div class="preset-chips" id="cpuid-presets">
+                <button type="button" class="chip" data-cpuid-preset="haswell-e">Haswell-E / EP v3</button>
+                <button type="button" class="chip" data-cpuid-preset="broadwell-e">Broadwell-E / EP v4</button>
+                <button type="button" class="chip" data-cpuid-preset="clear">Clear (no spoof)</button>
+              </div>
+              <div class="form-group">
+                <label for="cpuid-data">Cpuid1Data</label>
+                <input type="text" id="cpuid-data" class="input-text font-mono" spellcheck="false" placeholder="C3060300 00000000 00000000 00000000" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label for="cpuid-mask">Cpuid1Mask</label>
+                <input type="text" id="cpuid-mask" class="input-text font-mono" spellcheck="false" placeholder="FFFFFFFF 00000000 00000000 00000000" autocomplete="off">
+              </div>
+              <div class="quirk-row">
+                <div class="quirk-info">
+                  <span class="quirk-name">DummyPowerManagement</span>
+                  <span class="quirk-desc">Required for AMD. Leave off for Intel.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="cpuid-dummy-pm">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <div class="quirks-column">
@@ -209,11 +301,28 @@
                 <button class="chip" data-arg="-wegnoigpu">-wegnoigpu (Disable Intel iGPU)</button>
                 <button class="chip" data-arg="ipc_control_port_options=0">ipc_control_port_options=0 (macOS 14+ VM)</button>
                 <button class="chip" data-arg="e1000=0">e1000=0 (AppleVTD Ethernet Fix)</button>
+                <button class="chip" data-arg="cpus=1">cpus=1 (Single-CPU diagnostic)</button>
               </div>
 
               <div class="boot-args-input-box">
                 <label>Active <code>boot-args</code> String</label>
                 <input type="text" id="custom-boot-args" class="input-text" value="-v keepsyms=1 debug=0x100 alcid=1">
+              </div>
+            </div>
+
+            <h3 style="margin-top:20px;">Misc → Security</h3>
+            <div class="boot-args-card" id="secure-boot-card">
+              <p class="text-subtle">Sequoia on Dell X99 / T7910 needs <code>Disabled</code>. Leave <code>Default</code> only on platforms Dortania says can keep Apple Secure Boot.</p>
+              <div class="form-group">
+                <label for="secure-boot-model">SecureBootModel</label>
+                <select id="secure-boot-model" class="input-text">
+                  <option value="Disabled">Disabled</option>
+                  <option value="Default">Default</option>
+                  <option value="j137">j137 (iMacPro1,1)</option>
+                  <option value="j185">j185 (MacPro7,1)</option>
+                  <option value="j174">j174 (Macmini8,1)</option>
+                  <option value="j215">j215 (iMac20,1)</option>
+                </select>
               </div>
             </div>
 
@@ -524,6 +633,7 @@
           <div class="card">
             <h3>1. Assemble EFI folder</h3>
             <p class="text-subtle">Uses the CPU/GPU/kext/SMBIOS choices from the earlier tabs (same payload as Export config.plist).</p>
+            <div id="efi-profile-notes" class="cpu-match-result" style="margin-top:10px;" hidden></div>
             <div class="form-group" style="margin-top:12px;">
               <label>OpenCorePkg release</label>
               <input type="text" id="efi-oc-tag" class="input-text" placeholder="leave blank for latest (e.g. 1.0.7)">
@@ -586,6 +696,6 @@
     <div id="toast" class="toast">Action completed</div>
   </div>
 
-  <script src="studio.js?v=troubleshoot"></script>
+  <script src="studio.js?v=drop-dtgp"></script>
 </body>
 </html>

@@ -67,6 +67,10 @@ def normalize_cpu_query(raw: str) -> str:
     if xeon_w:
         return f"W-{xeon_w.group(1)}"
 
+    xeon_e5 = re.search(r"\bE5[-\s]?(\d{4})\s*V([34])\b", text)
+    if xeon_e5:
+        return f"E5-{xeon_e5.group(1)}V{xeon_e5.group(2)}"
+
     ultra = re.search(r"\bULTRA\s*([579])\s*-?\s*([0-9]{3}[A-Z]*)\b", text)
     if ultra:
         return f"ULTRA{ultra.group(1)}-{ultra.group(2)}"

@@ -1,0 +1,241 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-10-07T00:00:00Z",
+  "drivers": [
+    {
+      "id": "OpenRuntime",
+      "name": "OpenRuntime.efi",
+      "path": "OpenRuntime.efi",
+      "category": "required",
+      "source": "OpenCorePkg",
+      "description": "OpenCore runtime services. Required on every UEFI build. Never disable.",
+      "required": true,
+      "defaultEnabled": true,
+      "haltRisk": false
+    },
+    {
+      "id": "OpenHfsPlus",
+      "name": "OpenHfsPlus.efi",
+      "path": "OpenHfsPlus.efi",
+      "category": "required",
+      "source": "OpenCorePkg",
+      "description": "Reads HFS+ volumes so the macOS installer and recovery appear in the picker. Ships in the OpenCore zip.",
+      "required": true,
+      "defaultEnabled": true,
+      "haltRisk": false
+    },
+    {
+      "id": "ResetNvramEntry",
+      "name": "ResetNvramEntry.efi",
+      "path": "ResetNvramEntry.efi",
+      "category": "required",
+      "source": "OpenCorePkg",
+      "description": "Adds Reset NVRAM to the picker. Needed after BIOS or quirk changes. Press Spacebar if HideAuxiliary is on.",
+      "required": false,
+      "defaultEnabled": true,
+      "haltRisk": false
+    },
+    {
+      "id": "OpenCanopy",
+      "name": "OpenCanopy.efi",
+      "path": "OpenCanopy.efi",
+      "category": "picker",
+      "source": "OpenCorePkg",
+      "description": "Graphical OpenCore picker. Must match the OpenCore.efi version and needs OcBinaryData Resources.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "AudioDxe",
+      "name": "AudioDxe.efi",
+      "path": "AudioDxe.efi",
+      "category": "audio",
+      "source": "OpenCorePkg",
+      "description": "Boot chime / picker audio. Not a replacement for AppleALC in macOS.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "FirmwareSettingsEntry",
+      "name": "FirmwareSettingsEntry.efi",
+      "path": "FirmwareSettingsEntry.efi",
+      "category": "picker",
+      "source": "OpenCorePkg",
+      "description": "Adds a picker entry that reboots into firmware setup.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "ToggleSipEntry",
+      "name": "ToggleSipEntry.efi",
+      "path": "ToggleSipEntry.efi",
+      "category": "picker",
+      "source": "OpenCorePkg",
+      "description": "Adds a picker entry to toggle SIP. Leave off unless you are debugging.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "OpenLinuxBoot",
+      "name": "OpenLinuxBoot.efi",
+      "path": "OpenLinuxBoot.efi",
+      "category": "filesystem",
+      "source": "OpenCorePkg",
+      "description": "Boots Linux from the OpenCore picker. Usually paired with Ext4Dxe or OpenNtfsDxe.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "OpenNtfsDxe",
+      "name": "OpenNtfsDxe.efi",
+      "path": "OpenNtfsDxe.efi",
+      "category": "filesystem",
+      "source": "OpenCorePkg",
+      "description": "Reads NTFS volumes so Windows partitions can appear in the picker.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "Ext4Dxe",
+      "name": "Ext4Dxe.efi",
+      "path": "Ext4Dxe.efi",
+      "category": "filesystem",
+      "source": "OpenCorePkg",
+      "description": "Reads ext4 Linux volumes. Enable with OpenLinuxBoot if you dual-boot Linux.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "OpenPartitionDxe",
+      "name": "OpenPartitionDxe.efi",
+      "path": "OpenPartitionDxe.efi",
+      "category": "filesystem",
+      "source": "OpenCorePkg",
+      "description": "Adds partition-driver support some dual-boot layouts need.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "NvmExpressDxe",
+      "name": "NvmExpressDxe.efi",
+      "path": "NvmExpressDxe.efi",
+      "category": "storage",
+      "source": "OpenCorePkg",
+      "description": "NVMe driver for firmware that cannot see NVMe disks. Leave off if the BIOS already enumerates the drive.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "XhciDxe",
+      "name": "XhciDxe.efi",
+      "path": "XhciDxe.efi",
+      "category": "usb",
+      "source": "OpenCorePkg",
+      "description": "XHCI USB driver for older firmware missing native XHCI. Modern UEFI boards already have this.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "OpenUsbKbDxe",
+      "name": "OpenUsbKbDxe.efi",
+      "path": "OpenUsbKbDxe.efi",
+      "category": "input",
+      "source": "OpenCorePkg",
+      "description": "USB keyboard for legacy CSM/Duet only. Enabling this on a real UEFI board often breaks the picker keyboard.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false,
+      "warning": "Do not enable on UEFI Dell/X99. Breaks keyboard input on many boards."
+    },
+    {
+      "id": "UsbMouseDxe",
+      "name": "UsbMouseDxe.efi",
+      "path": "UsbMouseDxe.efi",
+      "category": "input",
+      "source": "OpenCorePkg",
+      "description": "USB mouse for legacy firmware. Not needed on modern UEFI.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "Ps2KeyboardDxe",
+      "name": "Ps2KeyboardDxe.efi",
+      "path": "Ps2KeyboardDxe.efi",
+      "category": "input",
+      "source": "OpenCorePkg",
+      "description": "PS/2 keyboard in the picker. Only for boards that still use a PS/2 port at boot.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "Ps2MouseDxe",
+      "name": "Ps2MouseDxe.efi",
+      "path": "Ps2MouseDxe.efi",
+      "category": "input",
+      "source": "OpenCorePkg",
+      "description": "PS/2 mouse in the picker. Rarely needed.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "HiiDatabase",
+      "name": "HiiDatabase.efi",
+      "path": "HiiDatabase.efi",
+      "category": "firmware",
+      "source": "OpenCorePkg",
+      "description": "HII database for firmware that lacks one. Needed by some AudioDxe setups.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "CrScreenshotDxe",
+      "name": "CrScreenshotDxe.efi",
+      "path": "CrScreenshotDxe.efi",
+      "category": "debug",
+      "source": "OpenCorePkg",
+      "description": "F10 screenshot of the picker, written to the EFI partition. Useful when debugging boot.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false
+    },
+    {
+      "id": "OpenVariableRuntimeDxe",
+      "name": "OpenVariableRuntimeDxe.efi",
+      "path": "OpenVariableRuntimeDxe.efi",
+      "category": "firmware",
+      "source": "OpenCorePkg",
+      "description": "Emulated NVRAM. LoadEarly must be true and it must load before OpenRuntime. Only for firmware that cannot write NVRAM.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": false,
+      "loadEarly": true,
+      "warning": "If enabled, LoadEarly must be true and OpenRuntime must follow it."
+    },
+    {
+      "id": "ResetTSCAdjust",
+      "name": "ResetTSCAdjust.efi",
+      "path": "ResetTSCAdjust.efi",
+      "category": "hedt",
+      "source": "denskop (not in OpenCore 1.0.x)",
+      "description": "Historical TSC fix used in some T5810 GitHub EFIs. OpenCore 1.0.x does not ship this file. Enabling it without the binary halts boot. Use CpuTscSync.kext instead.",
+      "required": false,
+      "defaultEnabled": false,
+      "haltRisk": true,
+      "warning": "Missing file = OpenCore HaltLevel ERROR. Leave disabled. CpuTscSync.kext is the 1.0.x path."
+    }
+  ]
+}

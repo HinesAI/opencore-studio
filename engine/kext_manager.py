@@ -20,12 +20,26 @@ KEXTS_FILE = mutable_file("kexts.json")
 REPOS_FILE = mutable_file("repos.json")
 
 
-def load_kext_catalog() -> list[dict[str, Any]]:
-    if not KEXTS_FILE.exists():
+def _read_kexts_file(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
         return []
-    with open(KEXTS_FILE, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return data.get("kexts", [])
+    kexts = data.get("kexts", []) if isinstance(data, dict) else data
+    return [k for k in kexts if isinstance(k, dict) and k.get("id")]
+
+
+def load_kext_catalog() -> list[dict[str, Any]]:
+    """Load the writable catalog, filling in any kexts that only exist in the bundle.
+
+    Application Support keeps a copy of kexts.json from first launch. New Studio
+    releases add catalog entries (CpuTscSync, …) that that copy would otherwise miss.
+    """
+    bundled = _read_kexts_file(DATA_DIR / "kexts.json")
+    local = _read_kexts_file(KEXTS_FILE)
+    by_id = {k["id"]: k for k in bundled}
+    by_id.update({k["id"]: k for k in local})
+    return list(by_id.values())
 
 
 def load_repos_config() -> dict[str, Any]:

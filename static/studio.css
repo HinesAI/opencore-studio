@@ -71,6 +71,15 @@ html, body {
   gap: 14px;
 }
 
+.logo-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 11px;
+  display: block;
+  flex-shrink: 0;
+  box-shadow: 0 0 14px rgba(88, 166, 255, 0.22);
+}
+
 .logo-icon {
   font-size: 28px;
   background: linear-gradient(135deg, #58a6ff, #bc8cff);
@@ -181,6 +190,24 @@ html, body {
   background: rgba(88, 166, 255, 0.08);
 }
 
+.badge-ok {
+  color: var(--success);
+  border-color: rgba(63, 185, 80, 0.35);
+  background: rgba(63, 185, 80, 0.1);
+}
+
+.badge-warn {
+  color: #d29922;
+  border-color: rgba(210, 153, 34, 0.35);
+  background: rgba(210, 153, 34, 0.1);
+}
+
+.badge-danger {
+  color: #f85149;
+  border-color: rgba(248, 81, 73, 0.35);
+  background: rgba(248, 81, 73, 0.1);
+}
+
 .header-actions {
   display: flex;
   gap: 10px;
@@ -232,6 +259,24 @@ html, body {
 
 .btn-accent:hover {
   background: #388bfd;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+.btn-ghost:hover {
+  color: var(--text-main);
+  border-color: var(--border-hover);
+  background: var(--bg-elevated);
+}
+
+.btn-tiny {
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
 .studio-body {
@@ -922,6 +967,31 @@ html, body {
   color: #0d1117;
 }
 
+.catalog-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.catalog-section-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.catalog-hint {
+  margin: 0 0 12px;
+}
+
+.kext-card.halt-risk {
+  border-color: rgba(248, 81, 73, 0.55);
+}
+
+.kext-card.halt-risk.enabled {
+  background: rgba(248, 81, 73, 0.06);
+}
+
 .kext-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1515,6 +1585,16 @@ input:checked + .slider:before {
 
 .text-muted { color: var(--text-muted); }
 .text-subtle { color: var(--text-subtle); font-size: 0.75rem; }
+
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
 
 .troubleshoot-card {
   margin-top: 20px;

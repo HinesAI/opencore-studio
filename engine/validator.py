@@ -171,4 +171,213 @@ def validate_config(pl: dict[str, Any], hardware_info: dict[str, Any] | None = N
         "message": f"ResizeAppleGpuBars set to {resize_bars} (recommended 0 or -1 for ReBAR compatibility)."
     })
 
+    results.extend(_hedt_dortania_findings(pl, hardware_info))
+    return results
+
+
+def _hedt_dortania_findings(pl: dict[str, Any], hardware_info: dict[str, Any]) -> list[dict[str, Any]]:
+    """Haswell-E / Broadwell-E / X99 required Dortania keys that used to ship blank."""
+    profile_id = str(hardware_info.get("profileId") or "").lower()
+    cpu_family = str(hardware_info.get("cpuFamily") or "").lower()
+    blob = f"{profile_id} {cpu_family}"
+    if not any(token in blob for token in ("haswell_e", "haswell-e", "broadwell_e", "broadwell-e", "x99", "c612")):
+        return []
+
+    results: list[dict[str, Any]] = []
+    emulate = (pl.get("Kernel") or {}).get("Emulate") or {}
+    cpuid = emulate.get("Cpuid1Data") or b""
+    mask = emulate.get("Cpuid1Mask") or b""
+    if isinstance(cpuid, str):
+        cpuid = cpuid.encode()
+    if isinstance(mask, str):
+        mask = mask.encode()
+    if not cpuid or not mask:
+        results.append({
+            "level": "FAIL",
+            "section": "Kernel -> Emulate",
+            "message": "Cpuid1Data / Cpuid1Mask are empty. Haswell-E and Broadwell-E have no native XCPM; Dortania requires the CPUID spoof or the kernel handoff dies at EXITBS:START.",
+            "remedy": "Haswell-E/EP (v3): Cpuid1Data C3060300… with mask FFFFFFFF…. Broadwell-E/EP (v4): D4060300… with the same mask."
+        })
+    else:
+        results.append({
+            "level": "PASS",
+            "section": "Kernel -> Emulate",
+            "message": "CPUID spoof is present for X99/C612 XCPM."
+        })
+
+    quirks = (pl.get("Kernel") or {}).get("Quirks") or {}
+    if not quirks.get("AppleXcpmExtraMsrs"):
+        results.append({
+            "level": "FAIL",
+            "section": "Kernel -> Quirks",
+            "message": "AppleXcpmExtraMsrs is disabled. Dortania requires it for Broadwell-E and older Xeons.",
+            "remedy": "Enable Kernel -> Quirks -> AppleXcpmExtraMsrs."
+        })
+    if not quirks.get("PowerTimeoutKernelPanic"):
+        results.append({
+            "level": "FAIL",
+            "section": "Kernel -> Quirks",
+            "message": "PowerTimeoutKernelPanic is disabled. Dortania enables this on Haswell-E / Broadwell-E.",
+            "remedy": "Enable Kernel -> Quirks -> PowerTimeoutKernelPanic."
+        })
+
+    if not ((pl.get("UEFI") or {}).get("Quirks") or {}).get("IgnoreInvalidFlexRatio"):
+        results.append({
+            "level": "FAIL",
+            "section": "UEFI -> Quirks",
+            "message": "IgnoreInvalidFlexRatio is disabled. Dortania requires it on all pre-Skylake firmware.",
+            "remedy": "Enable UEFI -> Quirks -> IgnoreInvalidFlexRatio."
+        })
+    else:
+        results.append({
+            "level": "PASS",
+            "section": "UEFI -> Quirks",
+            "message": "IgnoreInvalidFlexRatio is enabled for this pre-Skylake platform."
+        })
+
+    ssdt_paths = {
+        str(entry.get("Path") or "").upper()
+        for entry in ((pl.get("ACPI") or {}).get("Add") or [])
+        if entry.get("Enabled", True)
+    }
+    acpi_patches = [
+        entry for entry in ((pl.get("ACPI") or {}).get("Patch") or [])
+        if entry.get("Enabled", True)
+    ]
+    xcrs = any(
+        "xcrs" in str(entry.get("Comment") or "").lower()
+        or (isinstance(entry.get("Replace"), (bytes, bytearray)) and b"XCRS" in bytes(entry.get("Replace")))
+        for entry in acpi_patches
+    )
+    if "SSDT-HPET.AML" in ssdt_paths and not xcrs:
+        results.append({
+            "level": "FAIL",
+            "section": "ACPI -> Patch",
+            "message": "SSDT-HPET.aml is enabled but HPET _CRS → XCRS is not. SSDTTime HPET does nothing until DSDT _CRS is renamed.",
+            "remedy": "Enable ACPI patches HPET _CRS to XCRS Rename, TMR IRQ 0, and RTC IRQ 8 (Dell T5810 set)."
+        })
+    elif "SSDT-HPET.AML" in ssdt_paths and xcrs:
+        results.append({
+            "level": "PASS",
+            "section": "ACPI -> Patch",
+            "message": "HPET _CRS → XCRS is enabled with SSDT-HPET."
+        })
+    if "SSDT-X99-USBX.AML" in ssdt_paths:
+        results.append({
+            "level": "FAIL",
+            "section": "ACPI -> Add",
+            "message": "SSDT-X99-USBX.aml calls DTGP, which is not defined. That is the T5810 USBX table; it panics with AE_NOT_FOUND after replacing SSDT-SBUS-MCHC.",
+            "remedy": "Disable SSDT-X99-USBX.aml. Keep SSDT-EC-USBX.aml — it injects the same USB power properties without DTGP."
+        })
+    for required, reason in (
+        ("SSDT-RTC0-RANGE.AML", "Big Sur and newer RTC range on X99/C612"),
+        ("SSDT-UNC.AML", "uncore PCI bridges on X99/C612"),
+    ):
+        if required not in ssdt_paths:
+            results.append({
+                "level": "FAIL",
+                "section": "ACPI -> Add",
+                "message": f"{required.replace('.AML', '.aml')} is missing. Dortania requires it for {reason}.",
+                "remedy": f"Add and enable {required.replace('.AML', '.aml')} under ACPI -> Add, and copy the compiled AML into EFI/OC/ACPI."
+            })
+
+    drivers = [
+        str(d.get("Path") or "").lower()
+        for d in ((pl.get("UEFI") or {}).get("Drivers") or [])
+        if d.get("Enabled", True)
+    ]
+    kext_paths = [
+        str(e.get("BundlePath") or "").lower()
+        for e in ((pl.get("Kernel") or {}).get("Add") or [])
+        if e.get("Enabled", True)
+    ]
+    if any("resettcsadjust" in name for name in drivers):
+        results.append({
+            "level": "FAIL",
+            "section": "UEFI -> Drivers",
+            "message": "ResetTSCAdjust.efi is enabled, but OpenCore 1.0.x does not ship that file. A missing enabled driver halts boot.",
+            "remedy": "Remove ResetTSCAdjust.efi from UEFI -> Drivers and add CpuTscSync.kext instead."
+        })
+    tsc_kext = any("cputscsync" in name or "tscadjustreset" in name for name in kext_paths)
+    tsc_timeout = int(((pl.get("UEFI") or {}).get("Quirks") or {}).get("TscSyncTimeout") or 0)
+    if not tsc_kext:
+        results.append({
+            "level": "FAIL",
+            "section": "Kernel -> Add",
+            "message": "CpuTscSync.kext is missing. Dell T5810/T7910 C612 firmware desyncs TSC and panics with Non-monotonic time on Monterey and newer.",
+            "remedy": "Add CpuTscSync.kext under EFI/OC/Kexts (Lilu first) and enable it in Kernel -> Add. Do not list ResetTSCAdjust.efi; current OpenCore zips do not include that driver."
+        })
+    else:
+        results.append({
+            "level": "PASS",
+            "section": "Kernel -> Add",
+            "message": "CpuTscSync.kext is enabled for Dell T5810/T7910 TSC sync."
+        })
+    if tsc_timeout <= 0:
+        results.append({
+            "level": "WARN",
+            "section": "UEFI -> Quirks",
+            "message": "TscSyncTimeout is 0. A non-zero value helps cores sync before the kernel and CpuTscSync load.",
+            "remedy": "Set UEFI -> Quirks -> TscSyncTimeout to 500000 (microseconds)."
+        })
+    if not any("resetnvram" in name for name in drivers):
+        results.append({
+            "level": "WARN",
+            "section": "UEFI -> Drivers",
+            "message": "ResetNvramEntry.efi is missing. In the OpenCore text picker press Spacebar if Reset NVRAM is hidden, then select it.",
+            "remedy": "Enable ResetNvramEntry.efi under UEFI -> Drivers."
+        })
+
+    secure = str(((pl.get("Misc") or {}).get("Security") or {}).get("SecureBootModel") or "")
+    if secure.lower() not in ("disabled",):
+        results.append({
+            "level": "FAIL",
+            "section": "Misc -> Security",
+            "message": f"SecureBootModel is {secure or 'empty'}, not Disabled. Sequoia installation on Dell X99 / T7910 needs Disabled.",
+            "remedy": "Set Misc -> Security -> SecureBootModel to Disabled."
+        })
+    else:
+        results.append({
+            "level": "PASS",
+            "section": "Misc -> Security",
+            "message": "SecureBootModel is Disabled for the Sequoia X99 installer."
+        })
+
+    uefi_quirks = ((pl.get("UEFI") or {}).get("Quirks") or {})
+    if uefi_quirks.get("ReleaseUsbOwnership"):
+        results.append({
+            "level": "FAIL",
+            "section": "UEFI -> Quirks",
+            "message": "ReleaseUsbOwnership is True. The known-working Dell X99 config keeps this False (weird USB / root-device behavior).",
+            "remedy": "Set UEFI -> Quirks -> ReleaseUsbOwnership to False."
+        })
+    else:
+        results.append({
+            "level": "PASS",
+            "section": "UEFI -> Quirks",
+            "message": "ReleaseUsbOwnership is False (Dell X99 reference)."
+        })
+    if uefi_quirks.get("EnableVectorAcceleration"):
+        results.append({
+            "level": "FAIL",
+            "section": "UEFI -> Quirks",
+            "message": "EnableVectorAcceleration is True. The known-working Dell X99 config uses False.",
+            "remedy": "Set UEFI -> Quirks -> EnableVectorAcceleration to False."
+        })
+    else:
+        results.append({
+            "level": "PASS",
+            "section": "UEFI -> Quirks",
+            "message": "EnableVectorAcceleration is False (Dell X99 reference)."
+        })
+
+    boot_args = str((((pl.get("NVRAM") or {}).get("Add") or {}).get("7C436110-AB2A-4BBB-A880-FE41995C9F82") or {}).get("boot-args") or "")
+    if "cpus=1" in boot_args.split():
+        results.append({
+            "level": "WARN",
+            "section": "NVRAM -> boot-args",
+            "message": "boot-args still contains cpus=1, so macOS is restricted to one logical CPU. Fine as a diagnostic; remove it for a real install.",
+            "remedy": "Remove cpus=1 from NVRAM boot-args after the single-core test."
+        })
+
     return results

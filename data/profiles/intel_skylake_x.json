@@ -13,6 +13,7 @@
   "mandatorySsdt": [
     {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
     {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."},
+    {"name": "SSDT-RTC0-RANGE.aml", "reason": "Required for Big Sur and newer so the X299 RTC range is compatible."},
     {"name": "SSDT-UNC.aml", "reason": "Required on most X299 boards to boot past PCI uncore."}
   ],
   "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],

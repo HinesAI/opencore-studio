@@ -119,9 +119,32 @@ SYMPTOMS: list[dict[str, Any]] = [
         ],
         "guide": DORTANIA_KERNEL,
         "advice": (
-            "This is almost always Booter quirks or AMD kernel patches, not USB. Check SetupVirtualMap "
-            "for your chipset year, EnableWriteUnprotector vs MAT-style RebuildAppleMemoryMap, and "
-            "(on Ryzen) that AMD Vanilla patches are present and current."
+            "This is the boot.efi → kernel handoff. On Haswell-E / Broadwell-E (X99/C612) first confirm "
+            "Kernel → Emulate has the Dortania CPUID spoof (Haswell-E C3060300…, Broadwell-E D4060300…), "
+            "UEFI → Quirks → IgnoreInvalidFlexRatio, and SSDT-RTC0-RANGE plus SSDT-UNC. Then check "
+            "SetupVirtualMap, EnableWriteUnprotector vs RebuildAppleMemoryMap, and (on Ryzen) AMD Vanilla patches."
+        ),
+        "fixes": {},
+    },
+    {
+        "id": "non_monotonic_time",
+        "title": "Kernel panic: Non-monotonic time",
+        "blurb": "Gets past EXITBS, then panics on Non-monotonic time. Dell T5810/T7910 C612 firmware does not sync TSC across cores.",
+        "keywords": [
+            "non-monotonic time",
+            "non monotonic time",
+            "monotonic time",
+            "tsc adjust",
+            "resettcsadjust",
+            "cputscsync",
+            "tscadjustreset",
+        ],
+        "guide": DORTANIA_KERNEL,
+        "advice": (
+            "This is not EXITBS. Add CpuTscSync.kext (Lilu plugin) — OpenCore 1.0.x does not ship "
+            "ResetTSCAdjust.efi, and listing that missing driver halts boot. Haswell-E / Broadwell-E Studio "
+            "profiles add CpuTscSync and TscSyncTimeout automatically. In the OpenCore text picker, Reset NVRAM "
+            "is listed (or press Spacebar if hidden); pick it, let the machine reboot, then boot the installer again."
         ),
         "fixes": {},
     },
@@ -323,13 +346,14 @@ def usb_setup_findings(body: dict[str, Any]) -> list[dict[str, Any]]:
             "fixes": {"setQuirks": {"Kernel": {"XhciPortLimit": False}}},
         })
 
-    if release is False:
+    hedt_x99 = any(token in cpu for token in ("haswell_e", "haswell-e", "broadwell_e", "broadwell-e", "x99", "c612", "t5810", "t7910"))
+    if release is False and not hedt_x99:
         results.append({
             "level": "WARN",
             "section": "UEFI → Quirks",
             "symptomId": "waiting_root_device",
             "message": "ReleaseUsbOwnership is False. Some firmware will not hand USB to the installer (Waiting for Root Device).",
-            "remedy": "Enable UEFI → Quirks → ReleaseUsbOwnership and XHCI Hand-off in BIOS.",
+            "remedy": "Enable UEFI → Quirks → ReleaseUsbOwnership and XHCI Hand-off in BIOS. Dell X99 / T5810 / T7910 should keep this False.",
             "guide": DORTANIA_KERNEL,
             "fixes": {"setQuirks": {"UEFI": {"ReleaseUsbOwnership": True}}},
         })

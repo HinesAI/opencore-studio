@@ -13,6 +13,7 @@
   "mandatorySsdt": [
     {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
     {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."},
+    {"name": "SSDT-RTC0-RANGE.aml", "reason": "Required for Big Sur and newer so C422 RTC is compatible."},
     {"name": "SSDT-UNC.aml", "reason": "Uncore PCI bridge fix on C422."}
   ],
   "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],

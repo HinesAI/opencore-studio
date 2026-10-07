@@ -6,10 +6,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // Global State
   const state = {
     profiles: [],
-    currentProfileId: "intel_comet_lake",
+    currentProfileId: "",
     currentProfile: null,
     kextCatalog: [],
+    driverCatalog: [],
     selectedKexts: new Set(["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi"]),
+    selectedDrivers: new Set(["OpenRuntime.efi", "OpenHfsPlus.efi", "ResetNvramEntry.efi"]),
+    selectedSsdts: new Set(),
+    selectedAcpiPatches: new Set(),
+    ssdtCatalog: [],
+    acpiPatchCatalog: [],
+    secureBootModel: "Default",
     quirks: {
       Booter: {},
       Kernel: {},
@@ -25,6 +32,11 @@ document.addEventListener("DOMContentLoaded", () => {
       rom: ""
     },
     amdCoreCount: 8,
+    kernelEmulate: {
+      Cpuid1Data: "",
+      Cpuid1Mask: "",
+      DummyPowerManagement: false
+    },
     repos: [],
     latestXml: "",
     validationResults: [],
@@ -44,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const STEPS = [
     { id: "wizard", title: "Hardware", hint: "CPU" },
-    { id: "kexts", title: "Kexts", hint: "Pick" },
+    { id: "kexts", title: "Kexts", hint: "SSDTs" },
     { id: "quirks", title: "Quirks", hint: "Args" },
     { id: "smbios", title: "SMBIOS", hint: "IDs" },
     { id: "repos", title: "Updates", hint: "Extra" },
@@ -62,6 +74,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const kextCountBadge = document.getElementById("kext-count-badge");
   const kextSearch = document.getElementById("kext-search");
   const kextCatButtons = document.querySelectorAll("#kext-categories .pill-btn");
+  const driverCardsContainer = document.getElementById("driver-cards-container");
+  const driverCountBadge = document.getElementById("driver-count-badge");
+  const driverCatButtons = document.querySelectorAll("#driver-categories .pill-btn");
+  const ssdtCardsContainer = document.getElementById("ssdt-cards-container");
+  const ssdtCountBadge = document.getElementById("ssdt-count-badge");
+  const ssdtCatButtons = document.querySelectorAll("#ssdt-categories .pill-btn");
+  const acpiPatchCardsContainer = document.getElementById("acpi-patch-cards-container");
+  const acpiPatchCountBadge = document.getElementById("acpi-patch-count-badge");
+  const secureBootSelect = document.getElementById("secure-boot-model");
+
+  const HEDT_PROFILE_IDS = new Set(["intel_haswell_e", "intel_broadwell_e"]);
+  const REQUIRED_DRIVERS = new Set(["OpenRuntime.efi", "OpenHfsPlus.efi"]);
+  const KEXT_CAT_ALIASES = {
+    network: ["ethernet", "wifi", "bluetooth", "network"],
+    wireless: ["wifi", "bluetooth", "wireless"],
+    utility: ["utilities", "utility", "usb", "storage"]
+  };
   
   const booterQuirksList = document.getElementById("booter-quirks-list");
   const kernelQuirksList = document.getElementById("kernel-quirks-list");
@@ -212,9 +241,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fetch Initial Data
   async function initApp() {
     try {
-      const [profilesRes, kextsRes, reposRes, schemaRes, gpusRes] = await Promise.all([
+      const [profilesRes, kextsRes, driversRes, ssdtsRes, patchesRes, reposRes, schemaRes, gpusRes] = await Promise.all([
         fetch("/api/profiles").then(r => r.json()),
         fetch("/api/kexts").then(r => r.json()),
+        fetch("/api/drivers").then(r => r.json()).catch(() => null),
+        fetch("/api/ssdts").then(r => r.json()).catch(() => null),
+        fetch("/api/acpi-patches").then(r => r.json()).catch(() => null),
         fetch("/api/repos").then(r => r.json()),
         fetch("/api/schema").then(r => r.json()).catch(() => null),
         fetch("/api/gpus").then(r => r.json()).catch(() => null)
@@ -223,12 +255,31 @@ document.addEventListener("DOMContentLoaded", () => {
       if (profilesRes.success) {
         state.profiles = profilesRes.profiles;
         renderProfiles();
-        selectProfile(state.currentProfileId, { silent: true });
+      } else {
+        renderProfiles();
       }
 
       if (kextsRes.success) {
         state.kextCatalog = kextsRes.kexts;
         renderKexts();
+      }
+
+      if (driversRes && driversRes.success) {
+        state.driverCatalog = driversRes.drivers || [];
+        if (!state.selectedDrivers.size) {
+          applyDefaultDrivers();
+        }
+        renderDrivers();
+      }
+
+      if (ssdtsRes && ssdtsRes.success) {
+        state.ssdtCatalog = ssdtsRes.ssdts || [];
+        renderSsdts();
+      }
+
+      if (patchesRes && patchesRes.success) {
+        state.acpiPatchCatalog = patchesRes.patches || [];
+        renderAcpiPatches();
       }
 
       if (reposRes.success) {
@@ -246,16 +297,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       await loadOpenCoreVersionCallout();
 
-      const saved = loadSession();
-      const banner = document.getElementById("session-banner");
-      if (saved && banner) {
-        banner.style.display = "flex";
-        document.getElementById("session-banner-text").textContent =
-          `Last config saved${saved.savedAt ? " " + saved.savedAt : ""}. Resume to keep editing, or start fresh.`;
+      const restored = await restoreLastSession();
+      if (!restored) {
+        await selectProfile(state.currentProfileId || "intel_comet_lake", { silent: true });
+        await regenerateSmbios(smbiosModelSelect.value || "iMac20,1");
       }
 
-      // Generate initial SMBIOS
-      await regenerateSmbios("iMac20,1");
       fetch("/api/efi/status").then((r) => r.json()).then((manifest) => {
         state.efiReady = !!(manifest && manifest.success && (manifest.readyForUsb || manifest.zipPath));
         refreshStepper();
@@ -325,18 +372,38 @@ document.addEventListener("DOMContentLoaded", () => {
       // SSDTs
       const ssdtEl = document.getElementById("panel-ssdts");
       const ssdts = p.mandatorySsdt || [];
-      ssdtEl.innerHTML = ssdts.map(s => `
-        <li class="ssdt-item">
-          <div class="ssdt-name">${s.name}</div>
-          <div class="ssdt-reason">${s.reason}</div>
+      ssdtEl.innerHTML = ssdts.map(s => {
+        const name = s.name || s;
+        const on = state.selectedSsdts.size ? state.selectedSsdts.has(name) : true;
+        return `
+        <li class="ssdt-item ${on ? "enabled" : ""}">
+          <div class="ssdt-name">${name}${on ? "" : " <span class=\"text-subtle\">(off)</span>"}</div>
+          <div class="ssdt-reason">${s.reason || "Toggle on the Kexts tab → ACPI SSDTs."}</div>
         </li>
-      `).join("");
+      `;
+      }).join("");
+
+      const notesEl = document.getElementById("panel-boot-notes");
+      const notesGroup = document.getElementById("panel-boot-notes-group");
+      const efiNotes = document.getElementById("efi-profile-notes");
+      const notes = p.bootNotes || [];
+      if (notesEl && notesGroup) {
+        notesEl.innerHTML = notes.map((n) => `<li class="ssdt-item"><div class="ssdt-reason">${n}</div></li>`).join("");
+        notesGroup.hidden = notes.length === 0;
+      }
+      if (efiNotes) {
+        efiNotes.hidden = notes.length === 0;
+        efiNotes.textContent = notes.join(" ");
+      }
 
       const preserve = !!options.preserve;
       if (!preserve) {
         if (p.recommendedKexts && p.recommendedKexts.length > 0) {
           state.selectedKexts = new Set(p.recommendedKexts);
         }
+        applyDefaultDrivers(p);
+        applyDefaultSsdts(p);
+        setSecureBootModel((p.miscSecurity && p.miscSecurity.SecureBootModel) || (HEDT_PROFILE_IDS.has(profileId) ? "Disabled" : "Default"));
         state.quirks.Booter = Object.assign({}, state.schemaQuirks.Booter || {}, p.booterQuirks || {});
         state.quirks.Kernel = Object.assign({}, state.schemaQuirks.Kernel || {}, p.kernelQuirks || {});
         state.quirks.ACPI = Object.assign({}, state.schemaQuirks.ACPI || {}, p.acpiQuirks || {});
@@ -350,10 +417,18 @@ document.addEventListener("DOMContentLoaded", () => {
           smbiosModelSelect.value = recSmbios;
         }
         await regenerateSmbios(recSmbios);
-        if (p.recommendedBootArgs) setBootArgs(p.recommendedBootArgs);
+        const recArgs = p.recommendedBootArgs || (Array.isArray(p.bootArgs) ? p.bootArgs.join(" ") : p.bootArgs);
+        if (recArgs) setBootArgs(recArgs);
+        applyKernelEmulate(p.kernelEmulate || {}, { fromProfile: true });
       }
+      (p.mandatoryKexts || []).forEach((id) => state.selectedKexts.add(id));
+      applyHedtInstallerDefaults(profileId);
 
+      if (!state.selectedSsdts.size) applyDefaultSsdts(p);
       renderKexts();
+      renderDrivers();
+      renderSsdts();
+      renderAcpiPatches();
       renderQuirks();
 
       const isAmd = p.architecture === "AMD" || profileId.includes("amd") || profileId.includes("ryzen");
@@ -378,7 +453,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const lowerQuery = query.toLowerCase();
 
     const filtered = state.kextCatalog.filter(k => {
-      const matchCat = category === "all" || k.category.toLowerCase() === category.toLowerCase();
+      const cat = (k.category || "").toLowerCase();
+      const aliases = KEXT_CAT_ALIASES[category] || [category];
+      const matchCat = category === "all" || aliases.includes(cat);
       const matchSearch = !query || k.name.toLowerCase().includes(lowerQuery) || k.description.toLowerCase().includes(lowerQuery);
       return matchCat && matchSearch;
     });
@@ -418,6 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
             card.classList.remove("enabled");
           }
           updateKextCount();
+          saveSession();
         });
       }
       kextCardsContainer.appendChild(card);
@@ -431,6 +509,348 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshStepper();
   }
 
+  function driverPath(driver) {
+    return driver.path || driver.name || "";
+  }
+
+  function applyDefaultSsdts(profile) {
+    const next = new Set();
+    ((profile && profile.mandatorySsdt) || []).forEach((item) => {
+      const name = typeof item === "string" ? item : (item && item.name) || "";
+      if (name) next.add(name);
+    });
+    state.selectedSsdts = next;
+    stripUnsafeSsdts();
+    applyDefaultAcpiPatches(profile);
+  }
+
+  function stripUnsafeSsdts() {
+    (state.ssdtCatalog || []).forEach((s) => {
+      const path = ssdtPath(s);
+      if (s.skipInject && path) state.selectedSsdts.delete(path);
+    });
+    if (state.selectedSsdts.has("SSDT-EC-USBX.aml")) {
+      state.selectedSsdts.delete("SSDT-X99-USBX.aml");
+    }
+  }
+
+  async function loadSsdtCatalog() {
+    const res = await fetch("/api/ssdts").then((r) => r.json()).catch(() => null);
+    if (res && res.success) {
+      state.ssdtCatalog = res.ssdts || [];
+      stripUnsafeSsdts();
+    }
+    return state.ssdtCatalog;
+  }
+
+  function applySsdtUploadResult(res) {
+    if (!res || !res.success) {
+      const err = (res && res.error) || "Could not load ACPI files.";
+      const status = document.getElementById("ssdt-upload-status");
+      if (status) status.textContent = err;
+      showToast(err);
+      return false;
+    }
+    (res.enable || []).forEach((name) => state.selectedSsdts.add(name));
+    (res.saved || []).forEach((row) => {
+      if (row.injectSafe === false) state.selectedSsdts.delete(row.name);
+    });
+    if (res.ssdts) state.ssdtCatalog = res.ssdts;
+    stripUnsafeSsdts();
+    renderSsdts();
+    syncHpetPatchesFromSsdts();
+    saveSession();
+    const n = (res.saved || []).length;
+    const enabled = (res.enable || []).length;
+    const skipped = (res.skipped || []).length;
+    let msg;
+    if (!n) {
+      msg = skipped ? `Nothing loaded (${skipped} skipped).` : "No ACPI tables found.";
+    } else if (!enabled) {
+      msg = `Saved ${n} dump table${n === 1 ? "" : "s"} (DSDT/OEM SSDT-N are not injected). Load SSDTTime SSDT-EC/HPET/PLUG/RTC0-RANGE to override T5810.`;
+    } else {
+      msg = `Loaded ${enabled} SSDT${enabled === 1 ? "" : "s"} from this machine (overrides T5810/Dortania)${n > enabled ? `; ${n - enabled} dump table(s) stored only` : ""}.`;
+    }
+    const status = document.getElementById("ssdt-upload-status");
+    if (status) status.textContent = msg;
+    showToast(msg);
+    return true;
+  }
+
+  async function uploadSsdtFiles(fileList) {
+    const files = [];
+    for (const file of fileList) {
+      const buf = await file.arrayBuffer();
+      files.push({ name: file.name, b64: bytesToBase64(new Uint8Array(buf)) });
+    }
+    const status = document.getElementById("ssdt-upload-status");
+    if (status) status.textContent = "Loading…";
+    const res = await fetch("/api/ssdts/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ files })
+    }).then((r) => r.json()).catch(() => null);
+    applySsdtUploadResult(res);
+  }
+
+  async function importPendingSsdts() {
+    const status = document.getElementById("ssdt-upload-status");
+    if (status) status.textContent = "Loading…";
+    const res = await fetch("/api/ssdts/ingest-pending", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    }).then((r) => r.json()).catch(() => null);
+    applySsdtUploadResult(res);
+  }
+
+  function companionPatchIdsForSsdts() {
+    const wanted = new Set([...state.selectedSsdts].map((n) => String(n).toLowerCase()));
+    return (state.acpiPatchCatalog || [])
+      .filter((p) => p.requiresSsdt && wanted.has(String(p.requiresSsdt).toLowerCase()))
+      .map((p) => p.id);
+  }
+
+  function applyDefaultAcpiPatches(profile) {
+    const next = new Set((profile && profile.acpiPatches) || []);
+    companionPatchIdsForSsdts().forEach((id) => next.add(id));
+    state.selectedAcpiPatches = next;
+  }
+
+  function syncHpetPatchesFromSsdts() {
+    const companions = new Set(companionPatchIdsForSsdts());
+    (state.acpiPatchCatalog || []).forEach((p) => {
+      if (!p.requiresSsdt) return;
+      if (companions.has(p.id)) state.selectedAcpiPatches.add(p.id);
+      else state.selectedAcpiPatches.delete(p.id);
+    });
+    renderAcpiPatches();
+  }
+
+  function applyDefaultDrivers(profile) {
+    const next = new Set();
+    (state.driverCatalog || []).forEach((d) => {
+      if (d.defaultEnabled && driverPath(d)) next.add(driverPath(d));
+    });
+    ((profile && (profile.recommendedDrivers || profile.uefiDrivers)) || []).forEach((item) => {
+      const path = typeof item === "string" ? item : (item && (item.Path || item.name || item.path)) || "";
+      if (path) next.add(path);
+    });
+    REQUIRED_DRIVERS.forEach((p) => next.add(p));
+    next.delete("ResetTSCAdjust.efi");
+    if (!next.size) {
+      ["OpenRuntime.efi", "OpenHfsPlus.efi", "ResetNvramEntry.efi"].forEach((p) => next.add(p));
+    }
+    state.selectedDrivers = next;
+  }
+
+  function applyHedtInstallerDefaults(profileId) {
+    if (!HEDT_PROFILE_IDS.has(profileId || state.currentProfileId)) return;
+    state.quirks.UEFI = state.quirks.UEFI || {};
+    state.quirks.UEFI.ReleaseUsbOwnership = false;
+    state.quirks.UEFI.EnableVectorAcceleration = false;
+    setSecureBootModel("Disabled");
+    state.selectedKexts.add("CpuTscSync");
+    const tokens = (state.bootArgs || "").split(/\s+/).filter((t) => t && t !== "cpus=1");
+    if (tokens.join(" ") !== (state.bootArgs || "").trim()) {
+      setBootArgs(tokens.join(" "));
+    }
+  }
+
+  function setSecureBootModel(value) {
+    state.secureBootModel = value || "Default";
+    if (secureBootSelect && [...secureBootSelect.options].some((o) => o.value === state.secureBootModel)) {
+      secureBootSelect.value = state.secureBootModel;
+    }
+  }
+
+  function renderDrivers(category = "all", query = "") {
+    if (!driverCardsContainer) return;
+    driverCardsContainer.innerHTML = "";
+    const lowerQuery = (query || "").toLowerCase();
+    const filtered = (state.driverCatalog || []).filter((d) => {
+      const matchCat = category === "all" || (d.category || "").toLowerCase() === category.toLowerCase();
+      const hay = `${d.name || ""} ${d.path || ""} ${d.description || ""} ${d.source || ""}`.toLowerCase();
+      return matchCat && (!lowerQuery || hay.includes(lowerQuery));
+    });
+    filtered.forEach((d) => {
+      const path = driverPath(d);
+      const isSelected = state.selectedDrivers.has(path);
+      const isRequired = d.required === true || REQUIRED_DRIVERS.has(path);
+      const card = document.createElement("div");
+      card.className = `kext-card ${isSelected ? "enabled" : ""} ${d.haltRisk ? "halt-risk" : ""}`;
+      card.innerHTML = `
+        <div class="kext-card-header">
+          <div class="kext-name">
+            ${d.name || path}
+            ${isRequired ? '<span class="badge badge-accent">Required</span>' : ""}
+            ${d.haltRisk ? '<span class="badge badge-danger">Halt risk</span>' : ""}
+          </div>
+          <label class="switch">
+            <input type="checkbox" data-path="${path}" ${isSelected ? "checked" : ""} ${isRequired || d.haltRisk ? "disabled" : ""}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="kext-desc">${d.description || ""}${d.warning ? `<br><strong>${d.warning}</strong>` : ""}</div>
+        <div class="kext-meta-row">
+          <span class="kext-priority-tag">${d.category || "driver"}</span>
+          <span class="kext-author">${d.source || "OpenCorePkg"}</span>
+        </div>
+      `;
+      const toggle = card.querySelector('input[type="checkbox"]');
+      if (toggle && !isRequired && !d.haltRisk) {
+        toggle.addEventListener("change", (e) => {
+          if (e.target.checked) {
+            state.selectedDrivers.add(path);
+            card.classList.add("enabled");
+          } else {
+            state.selectedDrivers.delete(path);
+            card.classList.remove("enabled");
+          }
+          updateDriverCount();
+          saveSession();
+        });
+      }
+      driverCardsContainer.appendChild(card);
+    });
+    updateDriverCount();
+  }
+
+  function updateDriverCount() {
+    if (driverCountBadge) driverCountBadge.textContent = state.selectedDrivers.size;
+    refreshStepper();
+  }
+
+  function ssdtPath(ssdt) {
+    return ssdt.path || ssdt.name || "";
+  }
+
+  function renderSsdts(category = "all", query = "") {
+    if (!ssdtCardsContainer) return;
+    ssdtCardsContainer.innerHTML = "";
+    const lowerQuery = (query || "").toLowerCase();
+    const profileNames = new Set(
+      ((state.currentProfile && state.currentProfile.mandatorySsdt) || []).map((s) => (s && s.name) || s)
+    );
+    const filtered = (state.ssdtCatalog || []).filter((s) => {
+      const matchCat = category === "all" || (s.category || "").toLowerCase() === category.toLowerCase();
+      const hay = `${s.name || ""} ${s.path || ""} ${s.description || ""} ${s.when || ""} ${s.source || ""}`.toLowerCase();
+      return matchCat && (!lowerQuery || hay.includes(lowerQuery));
+    });
+    filtered.forEach((s) => {
+      const path = ssdtPath(s);
+      const isSelected = state.selectedSsdts.has(path);
+      const fromProfile = profileNames.has(path);
+      const card = document.createElement("div");
+      card.className = `kext-card ${isSelected ? "enabled" : ""}`;
+      card.innerHTML = `
+        <div class="kext-card-header">
+          <div class="kext-name">
+            ${path}
+            ${fromProfile ? '<span class="badge badge-accent">Profile</span>' : ""}
+            ${s.userOverride ? '<span class="badge badge-ok">Your file</span>' : ""}
+            ${s.skipInject ? '<span class="badge badge-warn">Do not inject</span>' : ""}
+          </div>
+          <label class="switch">
+            <input type="checkbox" data-path="${path}" ${isSelected ? "checked" : ""} ${s.skipInject ? "disabled" : ""}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="kext-desc">${s.description || ""}${s.when ? `<br><span class="text-subtle">${s.when}</span>` : ""}</div>
+        <div class="kext-meta-row">
+          <span class="kext-priority-tag">${s.category || "acpi"}</span>
+          <span class="kext-author">${s.userOverride ? "your file (overrides T5810/Dortania)" : (s.source || "prebuilt")}</span>
+          ${s.userOverride ? `<button type="button" class="btn btn-ghost btn-tiny" data-remove-ssdt="${path}">Remove file</button>` : ""}
+        </div>
+      `;
+      const toggle = card.querySelector('input[type="checkbox"]');
+      toggle.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          state.selectedSsdts.add(path);
+          card.classList.add("enabled");
+        } else {
+          state.selectedSsdts.delete(path);
+          card.classList.remove("enabled");
+        }
+        syncHpetPatchesFromSsdts();
+        updateSsdtCount();
+        saveSession();
+      });
+      const removeBtn = card.querySelector("[data-remove-ssdt]");
+      if (removeBtn) {
+        removeBtn.addEventListener("click", async () => {
+          const res = await fetch("/api/ssdts/remove", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: path })
+          }).then((r) => r.json()).catch(() => null);
+          if (res && res.ssdts) state.ssdtCatalog = res.ssdts;
+          else await loadSsdtCatalog();
+          if (s.skipInject) state.selectedSsdts.delete(path);
+          stripUnsafeSsdts();
+          renderSsdts();
+          saveSession();
+        });
+      }
+      ssdtCardsContainer.appendChild(card);
+    });
+    updateSsdtCount();
+  }
+
+  function updateSsdtCount() {
+    if (ssdtCountBadge) ssdtCountBadge.textContent = state.selectedSsdts.size;
+    if (statSsdts) statSsdts.textContent = state.selectedSsdts.size;
+    refreshStepper();
+  }
+
+  function renderAcpiPatches() {
+    if (!acpiPatchCardsContainer) return;
+    acpiPatchCardsContainer.innerHTML = "";
+    (state.acpiPatchCatalog || []).forEach((p) => {
+      const isSelected = state.selectedAcpiPatches.has(p.id);
+      const ssdtOn = !p.requiresSsdt || state.selectedSsdts.has(p.requiresSsdt);
+      const card = document.createElement("div");
+      card.className = `kext-card ${isSelected ? "enabled" : ""}`;
+      card.innerHTML = `
+        <div class="kext-card-header">
+          <div class="kext-name">
+            ${p.comment || p.id}
+            ${p.requiresSsdt ? '<span class="badge badge-accent">w/ ' + p.requiresSsdt.replace(".aml", "") + "</span>" : ""}
+          </div>
+          <label class="switch">
+            <input type="checkbox" data-id="${p.id}" ${isSelected ? "checked" : ""} ${ssdtOn ? "" : "disabled"}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="kext-desc">${p.description || ""}</div>
+        <div class="kext-meta-row">
+          <span class="kext-priority-tag">${p.findHex || ""} → ${p.replaceHex || ""}</span>
+          <span class="kext-author">${p.source || "ACPI"}</span>
+        </div>
+      `;
+      const toggle = card.querySelector('input[type="checkbox"]');
+      if (toggle && ssdtOn) {
+        toggle.addEventListener("change", (e) => {
+          if (e.target.checked) {
+            state.selectedAcpiPatches.add(p.id);
+            card.classList.add("enabled");
+          } else {
+            state.selectedAcpiPatches.delete(p.id);
+            card.classList.remove("enabled");
+          }
+          updateAcpiPatchCount();
+          saveSession();
+        });
+      }
+      acpiPatchCardsContainer.appendChild(card);
+    });
+    updateAcpiPatchCount();
+  }
+
+  function updateAcpiPatchCount() {
+    if (acpiPatchCountBadge) acpiPatchCountBadge.textContent = state.selectedAcpiPatches.size;
+  }
+
   // Filter Kexts
   kextCatButtons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -442,14 +862,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
   kextSearch.addEventListener("input", (e) => {
     const activeCat = document.querySelector("#kext-categories .pill-btn.active")?.dataset.cat || "all";
+    const driverCat = document.querySelector("#driver-categories .pill-btn.active")?.dataset.driverCat || "all";
+    const ssdtCat = document.querySelector("#ssdt-categories .pill-btn.active")?.dataset.ssdtCat || "all";
     renderKexts(activeCat, e.target.value);
+    renderDrivers(driverCat, e.target.value);
+    renderSsdts(ssdtCat, e.target.value);
   });
+
+  driverCatButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      driverCatButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderDrivers(btn.dataset.driverCat, kextSearch ? kextSearch.value : "");
+    });
+  });
+
+  ssdtCatButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      ssdtCatButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderSsdts(btn.dataset.ssdtCat, kextSearch ? kextSearch.value : "");
+    });
+  });
+
+  document.getElementById("btn-goto-ssdts")?.addEventListener("click", () => {
+    goToTab("kexts");
+    document.getElementById("ssdt-cards-container")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  if (secureBootSelect) {
+    secureBootSelect.addEventListener("change", () => {
+      state.secureBootModel = secureBootSelect.value;
+      saveSession();
+    });
+  }
 
   // Render Quirks
   function renderQuirks() {
     renderQuirksGroup(booterQuirksList, state.quirks.Booter, "Booter");
     renderQuirksGroup(kernelQuirksList, state.quirks.Kernel, "Kernel");
+    syncCpuidFields();
 
+    miscQuirksList.innerHTML = "";
     miscQuirksList.innerHTML = "";
     Object.keys(state.quirks.ACPI || {}).forEach((key) => {
       appendMiscQuirk(key, state.quirks.ACPI[key], "ACPI");
@@ -477,6 +931,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     row.querySelector("input").addEventListener("change", (e) => {
       state.quirks[groupKey][key] = e.target.checked;
+      saveSession();
     });
     miscQuirksList.appendChild(row);
   }
@@ -501,11 +956,92 @@ document.addEventListener("DOMContentLoaded", () => {
 
       row.querySelector('input').addEventListener("change", (e) => {
         state.quirks[groupKey][key] = e.target.checked;
+        saveSession();
       });
 
       container.appendChild(row);
     });
   }
+
+  const CPUID_PRESETS = {
+    "haswell-e": {
+      Cpuid1Data: "C3060300 00000000 00000000 00000000",
+      Cpuid1Mask: "FFFFFFFF 00000000 00000000 00000000",
+      DummyPowerManagement: false
+    },
+    "broadwell-e": {
+      Cpuid1Data: "D4060300 00000000 00000000 00000000",
+      Cpuid1Mask: "FFFFFFFF 00000000 00000000 00000000",
+      DummyPowerManagement: false
+    },
+    clear: {
+      Cpuid1Data: "",
+      Cpuid1Mask: "",
+      DummyPowerManagement: false
+    }
+  };
+
+  function formatCpuidHex(raw) {
+    const hex = String(raw || "").replace(/[^0-9a-fA-F]/g, "").toUpperCase();
+    if (!hex) return "";
+    return hex.match(/.{1,8}/g).join(" ");
+  }
+
+  function applyKernelEmulate(emulate, options = {}) {
+    const next = emulate || {};
+    state.kernelEmulate = {
+      Cpuid1Data: formatCpuidHex(next.Cpuid1Data),
+      Cpuid1Mask: formatCpuidHex(next.Cpuid1Mask),
+      DummyPowerManagement: !!next.DummyPowerManagement
+    };
+    if (options.fromProfile && !state.kernelEmulate.DummyPowerManagement) {
+      state.kernelEmulate.DummyPowerManagement = !!(state.currentProfile && state.currentProfile.architecture === "AMD");
+    }
+    syncCpuidFields();
+  }
+
+  function syncCpuidFields() {
+    const dataEl = document.getElementById("cpuid-data");
+    const maskEl = document.getElementById("cpuid-mask");
+    const dummyEl = document.getElementById("cpuid-dummy-pm");
+    if (dataEl) dataEl.value = state.kernelEmulate.Cpuid1Data || "";
+    if (maskEl) maskEl.value = state.kernelEmulate.Cpuid1Mask || "";
+    if (dummyEl) dummyEl.checked = !!state.kernelEmulate.DummyPowerManagement;
+    document.querySelectorAll("#cpuid-presets [data-cpuid-preset]").forEach((btn) => {
+      const preset = CPUID_PRESETS[btn.dataset.cpuidPreset];
+      const active = preset
+        && formatCpuidHex(preset.Cpuid1Data) === formatCpuidHex(state.kernelEmulate.Cpuid1Data)
+        && formatCpuidHex(preset.Cpuid1Mask) === formatCpuidHex(state.kernelEmulate.Cpuid1Mask);
+      btn.classList.toggle("active", !!active && btn.dataset.cpuidPreset !== "clear");
+      if (btn.dataset.cpuidPreset === "clear") {
+        btn.classList.toggle("active", !state.kernelEmulate.Cpuid1Data && !state.kernelEmulate.Cpuid1Mask);
+      }
+    });
+  }
+
+  function readCpuidFields() {
+    const dataEl = document.getElementById("cpuid-data");
+    const maskEl = document.getElementById("cpuid-mask");
+    const dummyEl = document.getElementById("cpuid-dummy-pm");
+    state.kernelEmulate.Cpuid1Data = formatCpuidHex(dataEl && dataEl.value);
+    state.kernelEmulate.Cpuid1Mask = formatCpuidHex(maskEl && maskEl.value);
+    state.kernelEmulate.DummyPowerManagement = !!(dummyEl && dummyEl.checked);
+    syncCpuidFields();
+    saveSession();
+  }
+
+  document.getElementById("cpuid-data")?.addEventListener("change", readCpuidFields);
+  document.getElementById("cpuid-mask")?.addEventListener("change", readCpuidFields);
+  document.getElementById("cpuid-data")?.addEventListener("blur", readCpuidFields);
+  document.getElementById("cpuid-mask")?.addEventListener("blur", readCpuidFields);
+  document.getElementById("cpuid-dummy-pm")?.addEventListener("change", readCpuidFields);
+  document.querySelectorAll("#cpuid-presets [data-cpuid-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      applyKernelEmulate(CPUID_PRESETS[btn.dataset.cpuidPreset] || CPUID_PRESETS.clear);
+      saveSession();
+      showToast(btn.dataset.cpuidPreset === "clear" ? "Cleared CPUID spoof." : `Applied ${btn.textContent} CPUID.`);
+    });
+  });
 
   // Boot Args Chips & Input
   function setBootArgs(argsStr) {
@@ -591,25 +1127,54 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  function saveSession() {
-    const payload = {
+  function sessionPayload() {
+    return {
       savedAt: new Date().toLocaleString(),
       profileId: state.currentProfileId,
       gpuId: state.gpuId,
+      cpuFilter: state.cpuFilter || "",
       selectedKexts: Array.from(state.selectedKexts),
+      selectedKextIds: Array.from(state.selectedKexts),
+      selectedDrivers: Array.from(state.selectedDrivers),
+      selectedSsdts: Array.from(state.selectedSsdts),
+      selectedAcpiPatches: Array.from(state.selectedAcpiPatches),
+      secureBootModel: state.secureBootModel,
       bootArgs: state.bootArgs,
       smbios: state.smbios,
       quirks: state.quirks,
+      kernelEmulate: state.kernelEmulate,
       amdCoreCount: state.amdCoreCount,
       latestXml: state.latestXml || "",
       selectedMacosId: state.selectedMacosId || ""
     };
+  }
+
+  function persistSessionToDisk(payload) {
+    if (!payload || !payload.profileId) return;
+    const body = JSON.stringify(payload);
+    fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true
+    }).catch(() => {});
+  }
+
+  function saveSession() {
+    const payload = sessionPayload();
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
     } catch (err) {
       console.warn("Could not persist session", err);
     }
+    clearTimeout(saveSession._timer);
+    saveSession._timer = setTimeout(() => persistSessionToDisk(payload), 120);
   }
+
+  window.addEventListener("pagehide", () => persistSessionToDisk(sessionPayload()));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") persistSessionToDisk(sessionPayload());
+  });
 
   function loadSession() {
     try {
@@ -620,22 +1185,106 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function fetchDiskSession() {
+    try {
+      const res = await fetch("/api/session").then((r) => r.json());
+      if (res && res.success && res.session && res.session.profileId) return res.session;
+    } catch (err) {
+      /* fall through to localStorage */
+    }
+    return loadSession();
+  }
+
+  function showSessionBanner(text, showResume) {
+    const banner = document.getElementById("session-banner");
+    if (!banner) return;
+    const resumeBtn = document.getElementById("btn-resume-session");
+    document.getElementById("session-banner-text").textContent = text;
+    if (resumeBtn) resumeBtn.style.display = showResume ? "" : "none";
+    banner.style.display = "flex";
+  }
+
+  async function restoreLastSession() {
+    const saved = await fetchDiskSession();
+    if (!saved || !saved.profileId) return false;
+    const known = (state.profiles || []).some((p) => p.id === saved.profileId);
+    if (!known) return false;
+    if (saved.cpuFilter) {
+      state.cpuFilter = saved.cpuFilter;
+      const cpuInput = document.getElementById("cpu-search");
+      if (cpuInput) cpuInput.value = saved.cpuFilter;
+    }
+    await hydrateStudio({
+      profileId: saved.profileId,
+      gpuId: saved.gpuId,
+      selectedKextIds: saved.selectedKexts || saved.selectedKextIds,
+      selectedDrivers: saved.selectedDrivers,
+      selectedSsdts: saved.selectedSsdts,
+      selectedAcpiPatches: saved.selectedAcpiPatches,
+      secureBootModel: saved.secureBootModel,
+      bootArgs: saved.bootArgs,
+      smbios: saved.smbios,
+      quirks: saved.quirks,
+      kernelEmulate: saved.kernelEmulate
+    }, saved.latestXml);
+    if (saved.amdCoreCount) {
+      state.amdCoreCount = saved.amdCoreCount;
+      if (amdCoreSlider) amdCoreSlider.value = saved.amdCoreCount;
+      const coreDisplay = document.getElementById("amd-core-display");
+      if (coreDisplay) {
+        const hex = Number(saved.amdCoreCount).toString(16).padStart(2, "0");
+        coreDisplay.textContent = `${saved.amdCoreCount} Cores (0x${hex})`;
+      }
+    }
+    if (saved.selectedMacosId) state.selectedMacosId = saved.selectedMacosId;
+    renderProfiles();
+    const profileName = (state.currentProfile && state.currentProfile.name) || saved.profileId;
+    showSessionBanner(`Restored ${profileName} from last session.`, false);
+    showToast(`Restored last profile: ${profileName}`);
+    return true;
+  }
+
   async function hydrateStudio(studio, xml) {
     if (!studio) return;
     if (studio.profileId) {
-      await selectProfile(studio.profileId, { preserve: true });
+      await selectProfile(studio.profileId, { preserve: true, silent: true });
     }
     if (Array.isArray(studio.selectedKextIds || studio.selectedKexts)) {
       state.selectedKexts = new Set(studio.selectedKextIds || studio.selectedKexts);
-      renderKexts();
     }
+    if (Array.isArray(studio.selectedDrivers) && studio.selectedDrivers.length) {
+      state.selectedDrivers = new Set(studio.selectedDrivers.filter((p) => p && p !== "ResetTSCAdjust.efi"));
+      REQUIRED_DRIVERS.forEach((p) => state.selectedDrivers.add(p));
+    } else if (!state.selectedDrivers.size) {
+      applyDefaultDrivers(state.currentProfile);
+    }
+    if (Array.isArray(studio.selectedSsdts) && studio.selectedSsdts.length) {
+      state.selectedSsdts = new Set(studio.selectedSsdts.filter(Boolean));
+      stripUnsafeSsdts();
+    } else {
+      applyDefaultSsdts(state.currentProfile);
+    }
+    if (Array.isArray(studio.selectedAcpiPatches) && studio.selectedAcpiPatches.length) {
+      state.selectedAcpiPatches = new Set(studio.selectedAcpiPatches.filter(Boolean));
+    } else {
+      syncHpetPatchesFromSsdts();
+    }
+    if (studio.secureBootModel) setSecureBootModel(studio.secureBootModel);
     if (studio.bootArgs) setBootArgs(studio.bootArgs);
     if (studio.quirks) {
       state.quirks.ACPI = Object.assign({}, state.quirks.ACPI, studio.quirks.ACPI || {});
       state.quirks.Booter = Object.assign({}, state.quirks.Booter, studio.quirks.Booter || {});
       state.quirks.Kernel = Object.assign({}, state.quirks.Kernel, studio.quirks.Kernel || {});
       state.quirks.UEFI = Object.assign({}, state.quirks.UEFI, studio.quirks.UEFI || {});
-      renderQuirks();
+    }
+    applyHedtInstallerDefaults(studio.profileId || state.currentProfileId);
+    renderKexts();
+    renderDrivers();
+    renderSsdts();
+    renderAcpiPatches();
+    renderQuirks();
+    if (studio.kernelEmulate) {
+      applyKernelEmulate(studio.kernelEmulate);
     }
     if (studio.smbios) {
       state.smbios = Object.assign({}, state.smbios, studio.smbios);
@@ -781,6 +1430,21 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("file-load-plist")?.click();
   });
 
+  document.getElementById("btn-load-ssdts")?.addEventListener("click", () => {
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.studio) {
+      window.webkit.messageHandlers.studio.postMessage("loadSsdts");
+      return;
+    }
+    document.getElementById("file-load-ssdts")?.click();
+  });
+
+  document.getElementById("file-load-ssdts")?.addEventListener("change", async (e) => {
+    const list = e.target.files ? Array.from(e.target.files) : [];
+    if (!list.length) return;
+    await uploadSsdtFiles(list);
+    e.target.value = "";
+  });
+
   document.getElementById("file-load-plist").addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -829,19 +1493,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.getElementById("btn-resume-session").addEventListener("click", async () => {
-    const saved = loadSession();
-    if (!saved) return;
+    const saved = await fetchDiskSession();
+    if (!saved || !saved.profileId) return;
     await hydrateStudio({
       profileId: saved.profileId,
       gpuId: saved.gpuId,
-      selectedKextIds: saved.selectedKexts,
+      selectedKextIds: saved.selectedKexts || saved.selectedKextIds,
+      selectedDrivers: saved.selectedDrivers,
+      selectedSsdts: saved.selectedSsdts,
+      selectedAcpiPatches: saved.selectedAcpiPatches,
+      secureBootModel: saved.secureBootModel,
       bootArgs: saved.bootArgs,
       smbios: saved.smbios,
-      quirks: saved.quirks
+      quirks: saved.quirks,
+      kernelEmulate: saved.kernelEmulate
     }, saved.latestXml);
     if (saved.amdCoreCount) {
       state.amdCoreCount = saved.amdCoreCount;
-      amdCoreSlider.value = saved.amdCoreCount;
+      if (amdCoreSlider) amdCoreSlider.value = saved.amdCoreCount;
     }
     if (saved.selectedMacosId) {
       state.selectedMacosId = saved.selectedMacosId;
@@ -850,10 +1519,15 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast("Resumed last Studio config.");
   });
 
-  document.getElementById("btn-clear-session").addEventListener("click", () => {
+  document.getElementById("btn-clear-session").addEventListener("click", async () => {
     localStorage.removeItem(SESSION_KEY);
-    document.getElementById("session-banner").style.display = "none";
-    showToast("Cleared saved config.");
+    try {
+      await fetch("/api/session/clear", { method: "POST" });
+    } catch (err) {
+      /* ignore */
+    }
+    showToast("Cleared saved config. Starting fresh.");
+    window.location.reload();
   });
 
   // Repositories & Guidance Hub
@@ -1080,6 +1754,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.ocsImportPlistPayload = (payload) => importPlistXml((payload && payload.xml) || "");
   window.ocsImportPendingNative = () => importPendingNativePlist();
+  window.ocsImportPendingSsdts = () => importPendingSsdts();
   window.ocsShowVersionPicker = () => showOpenCoreVersionMenu();
   window.ocsExportPlist = () => triggerDownloadPlist();
 
@@ -1269,6 +1944,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return {
       profileId: state.currentProfileId,
       selectedKextIds: Array.from(state.selectedKexts),
+      selectedDrivers: Array.from(state.selectedDrivers),
+      selectedSsdts: Array.from(state.selectedSsdts),
+      selectedAcpiPatches: Array.from(state.selectedAcpiPatches),
+      secureBootModel: state.secureBootModel,
       bootArgs: state.bootArgs,
       smbios: state.smbios,
       amdCoreCount: state.amdCoreCount,
@@ -1278,13 +1957,20 @@ document.addEventListener("DOMContentLoaded", () => {
         ACPI: state.quirks.ACPI,
         UEFI: state.quirks.UEFI
       },
+      kernelEmulate: {
+        Cpuid1Data: state.kernelEmulate.Cpuid1Data || "",
+        Cpuid1Mask: state.kernelEmulate.Cpuid1Mask || "",
+        DummyPowerManagement: !!state.kernelEmulate.DummyPowerManagement
+      },
       hardwareInfo: {
         cpuFamily: state.currentProfile?.cpuFamily || "",
         architecture: state.currentProfile?.architecture || "",
         profileId: state.currentProfileId,
+        cpuQuery: state.cpuFilter || "",
         gpuId: state.gpuId || "",
         gpuType: state.bootArgs.includes("agdpmod=pikera") ? "AMD Navi RX 6000" : "Intel UHD"
-      }
+      },
+      cpuQuery: state.cpuFilter || ""
     };
   }
 
@@ -1806,9 +2492,14 @@ document.addEventListener("DOMContentLoaded", () => {
       `OC/OpenCore.efi: ${manifest.bootloader && manifest.bootloader.OpenCore ? "yes" : "NO"}`,
       `Kexts: ${(manifest.kextsInstalled || []).join(", ") || "(none)"}`,
       `SSDTs: ${(manifest.ssdtsInstalled || []).join(", ") || "(none)"}`,
+      `Drivers: ${(manifest.driversInstalled || []).join(", ") || "(none)"}`,
     ];
     if ((manifest.kextsMissing || []).length) lines.push(`Kext gaps: ${manifest.kextsMissing.join("; ")}`);
     if ((manifest.ssdtsMissing || []).length) lines.push(`SSDT gaps: ${manifest.ssdtsMissing.join("; ")}`);
+    if ((manifest.driversMissing || []).length) lines.push(`Driver gaps: ${manifest.driversMissing.join("; ")}`);
+    if ((manifest.driversOmitted || []).length) {
+      lines.push(`Omitted missing drivers (would halt OpenCore): ${manifest.driversOmitted.join("; ")}`);
+    }
     lines.push(manifest.resources || "");
     lines.push(manifest.readyForUsb ? "Ready to copy onto a USB volume." : "Build is incomplete.");
     log.textContent = lines.filter(Boolean).join("\n");

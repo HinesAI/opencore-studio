@@ -1,0 +1,213 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-10-07T00:00:00Z",
+  "ssdts": [
+    {
+      "id": "SSDT-PLUG",
+      "name": "SSDT-PLUG.aml",
+      "path": "SSDT-PLUG.aml",
+      "category": "cpu",
+      "source": "Dortania extra-files (PLUG-DRTNIA) until you load a machine file",
+      "description": "Attaches X86PlatformPlugin for native CPU power management on Haswell and newer Intel. The generic/T5810 AML is wrong for a dual-socket T7910 — load SSDTTime SSDT-PLUG from that machine.",
+      "when": "Intel Haswell+ desktop, HEDT, laptop"
+    },
+    {
+      "id": "SSDT-PLUG-ALT",
+      "name": "SSDT-PLUG-ALT.aml",
+      "path": "SSDT-PLUG-ALT.aml",
+      "category": "cpu",
+      "source": "OpenCorePkg",
+      "description": "Alternate plugin-type SSDT for odd CPU ACPI order (some Alder / Arrow hybrid boards).",
+      "when": "Only if SSDT-PLUG does not attach X86PlatformPlugin"
+    },
+    {
+      "id": "SSDT-EC-USBX",
+      "name": "SSDT-EC-USBX.aml",
+      "path": "SSDT-EC-USBX.aml",
+      "category": "ec",
+      "source": "Dortania extra-files (EC-USBX-DESKTOP)",
+      "description": "Hides the OEM Embedded Controller, injects a fake EC, and adds USBX power properties. Standard desktop / HEDT pick.",
+      "when": "Skylake+ desktop, X99, X299, AMD desktop"
+    },
+    {
+      "id": "SSDT-EC",
+      "name": "SSDT-EC.aml",
+      "path": "SSDT-EC.aml",
+      "category": "ec",
+      "source": "Dortania extra-files (EC-DESKTOP)",
+      "description": "Fake EC only, no USBX. Used on pre-Skylake desktops alongside EC-USBX. T5810 and T7910 need their own SSDTTime EC — do not keep the T5810 file on a T7910.",
+      "when": "Haswell/Broadwell desktop, Dell X99"
+    },
+    {
+      "id": "SSDT-EC-LAPTOP",
+      "name": "SSDT-EC-LAPTOP.aml",
+      "path": "SSDT-EC-LAPTOP.aml",
+      "category": "laptop",
+      "source": "Dortania extra-files",
+      "description": "Laptop EC stub that does not disable the real Embedded Controller (battery / hotkeys).",
+      "when": "Laptops only — do not mix with SSDT-EC-USBX desktop"
+    },
+    {
+      "id": "SSDT-EC-USBX-LAPTOP",
+      "name": "SSDT-EC-USBX-LAPTOP.aml",
+      "path": "SSDT-EC-USBX-LAPTOP.aml",
+      "category": "laptop",
+      "source": "Dortania extra-files",
+      "description": "Laptop fake EC plus USBX without killing the real EC.",
+      "when": "Laptops"
+    },
+    {
+      "id": "SSDT-HPET",
+      "name": "SSDT-HPET.aml",
+      "path": "SSDT-HPET.aml",
+      "category": "irq",
+      "source": "SSDTTime (T5810 download until you load a T7910 file)",
+      "description": "IRQ / HPET conflict fix. Needed for onboard audio on many boards. Enabling this also turns on the ACPI patches: HPET _CRS→XCRS, TMR IRQ 0, RTC IRQ 8. The downloaded AML is from the single-socket T5810 — load SSDTTime output from the T7910 itself so this file is machine-correct.",
+      "when": "Dell T5810/T7910, or any board SSDTTime flagged for HPET"
+    },
+    {
+      "id": "SSDT-SBUS-MCHC",
+      "name": "SSDT-SBUS-MCHC.aml",
+      "path": "SSDT-SBUS-MCHC.aml",
+      "category": "smbus",
+      "source": "OpenCorePkg Binaries",
+      "description": "Adds SMBus / MCHC so AppleSMBus attaches. Skip if your DSDT already has MCHC.",
+      "when": "X99 / many desktops missing MCHC"
+    },
+    {
+      "id": "SSDT-X99-USBX",
+      "name": "SSDT-X99-USBX.aml",
+      "path": "SSDT-X99-USBX.aml",
+      "category": "usb",
+      "source": "BillDH2k T5810 EFI — leave OFF with T7910 USBX",
+      "description": "T5810 USBX that calls DTGP. The old T5810 SSDT-SBUS-MCHC defined DTGP; our T7910 SBUS does not. Loading this with the new SSDTs causes ACPI Error: [DTGP] AE_NOT_FOUND. Use SSDT-EC-USBX instead (same USB power properties, no DTGP).",
+      "when": "Do not enable on T7910 if SSDT-EC-USBX is on"
+    },
+    {
+      "id": "SSDT-RTC0-RANGE",
+      "name": "SSDT-RTC0-RANGE.aml",
+      "path": "SSDT-RTC0-RANGE.aml",
+      "category": "rtc",
+      "source": "Dortania extra-files (RTC0-RANGE-HEDT)",
+      "description": "Fills RTC _CRS holes so Big Sur and newer will boot on X99 / X299. Required on HEDT. Generate from this machine on a T7910; the T5810 range table is a last-resort fallback.",
+      "when": "X99, X299, C612, Skylake-X"
+    },
+    {
+      "id": "SSDT-RTC0",
+      "name": "SSDT-RTC0.aml",
+      "path": "SSDT-RTC0.aml",
+      "category": "rtc",
+      "source": "OpenCorePkg",
+      "description": "Fake RTC device when firmware has no legacy RTC. Use instead of AWAC only when AWAC disable is wrong.",
+      "when": "300-series boards where SSDT-AWAC is not enough"
+    },
+    {
+      "id": "SSDT-AWAC",
+      "name": "SSDT-AWAC.aml",
+      "path": "SSDT-AWAC.aml",
+      "category": "rtc",
+      "source": "Dortania extra-files",
+      "description": "Forces the legacy RTC and disables AWAC. Needed on most 300-series and newer desktops.",
+      "when": "Coffee Lake and newer Intel desktop (not HEDT X99)"
+    },
+    {
+      "id": "SSDT-UNC",
+      "name": "SSDT-UNC.aml",
+      "path": "SSDT-UNC.aml",
+      "category": "hedt",
+      "source": "Dortania extra-files",
+      "description": "Disables unused uncore PCI bridges so IOPCIFamily does not stall on Big Sur+. Required on X99 / C612.",
+      "when": "X99, C612, older HEDT. Not on Skylake-X Dortania list"
+    },
+    {
+      "id": "SSDT-PMC",
+      "name": "SSDT-PMC.aml",
+      "path": "SSDT-PMC.aml",
+      "category": "nvram",
+      "source": "Dortania extra-files",
+      "description": "Maps PMC MMIO so NVRAM works on true 300-series. Do not use on Z370.",
+      "when": "Z390 / B360 / H370 / Q370 — not Z370, not X99"
+    },
+    {
+      "id": "SSDT-RHUB",
+      "name": "SSDT-RHUB.aml",
+      "path": "SSDT-RHUB.aml",
+      "category": "usb",
+      "source": "Dortania extra-files",
+      "description": "Resets the USB root hub so ports enumerate. Common on Asus 400-series, Ice Lake, and some AMD.",
+      "when": "Missing USB ports in macOS, Asus 400, AMD USB reset"
+    },
+    {
+      "id": "SSDT-PNLF",
+      "name": "SSDT-PNLF.aml",
+      "path": "SSDT-PNLF.aml",
+      "category": "laptop",
+      "source": "Dortania extra-files",
+      "description": "Backlight device for laptops and AIOs. WhateverGreen needs this for brightness keys.",
+      "when": "Laptop / iMac-style AIO with iGPU"
+    },
+    {
+      "id": "SSDT-IMEI",
+      "name": "SSDT-IMEI.aml",
+      "path": "SSDT-IMEI.aml",
+      "category": "imei",
+      "source": "Dortania extra-files",
+      "description": "Creates an IMEI device when the CPU and chipset generation are mixed (Sandy CPU + 7-series, Ivy CPU + 6-series).",
+      "when": "CPU/chipset generation mismatch only"
+    },
+    {
+      "id": "SSDT-CPUR",
+      "name": "SSDT-CPUR.aml",
+      "path": "SSDT-CPUR.aml",
+      "category": "amd",
+      "source": "Dortania extra-files",
+      "description": "Adds CPU ACPI objects missing on AMD B550 / A520. Do not use on X570 or Intel.",
+      "when": "AMD B550 / A520 only"
+    },
+    {
+      "id": "SSDT-XOSI",
+      "name": "SSDT-XOSI.aml",
+      "path": "SSDT-XOSI.aml",
+      "category": "compat",
+      "source": "Dortania extra-files",
+      "description": "Spoofs _OSI so Windows-only ACPI methods run. Needs a matching DSDT _OSI → XOSI rename. Do not add without that patch.",
+      "when": "Board ACPI gated behind Windows _OSI — plus the rename"
+    },
+    {
+      "id": "SSDT-ALS0",
+      "name": "SSDT-ALS0.aml",
+      "path": "SSDT-ALS0.aml",
+      "category": "laptop",
+      "source": "OpenCorePkg",
+      "description": "Fake ambient light sensor. Optional; some brightness setups want it.",
+      "when": "Laptop brightness / auto-brightness experiments"
+    },
+    {
+      "id": "SSDT-BRG0",
+      "name": "SSDT-BRG0.aml",
+      "path": "SSDT-BRG0.aml",
+      "category": "gpu",
+      "source": "OpenCorePkg",
+      "description": "PCI bridge ACPI for GPUs sitting behind an extra bridge. Rare; only if device-id injection cannot see the dGPU.",
+      "when": "dGPU behind a PCI bridge that macOS does not walk"
+    },
+    {
+      "id": "SSDT-PCI1",
+      "name": "SSDT-PCI1.aml",
+      "path": "SSDT-PCI1.aml",
+      "category": "pci",
+      "source": "T7910 dual-socket experiment — load your .aml",
+      "description": "Experimental second-CPU PCI bus table for the dual-socket T7910. There is no T5810 equivalent. Load the AML from the T7910 ACPI thread; leave off unless that bus is missing in macOS.",
+      "when": "Dell T7910 second socket PCI — optional / experimental"
+    },
+    {
+      "id": "SSDT-PCIA",
+      "name": "SSDT-PCIA.aml",
+      "path": "SSDT-PCIA.aml",
+      "category": "pci",
+      "source": "T7910 dual-socket experiment — load your .aml",
+      "description": "Experimental PCI0/PCIA helper for the T7910's second CPU root bridge. Load the machine AML; do not expect a Dortania download.",
+      "when": "Dell T7910 second socket PCI — optional / experimental"
+    }
+  ]
+}

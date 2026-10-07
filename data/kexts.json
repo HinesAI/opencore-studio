@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2026-09-12T20:00:00Z",
+  "lastUpdated": "2026-10-07T00:00:00Z",
   "kexts": [
     {
       "id": "Lilu",
@@ -28,7 +28,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 10,
       "required": true,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -43,7 +45,10 @@
       "plistPath": "Contents/Info.plist",
       "priority": 11,
       "required": false,
-      "dependencies": ["VirtualSMC", "Lilu"],
+      "dependencies": [
+        "VirtualSMC",
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": "",
       "intelOnly": true
@@ -59,7 +64,10 @@
       "plistPath": "Contents/Info.plist",
       "priority": 12,
       "required": false,
-      "dependencies": ["VirtualSMC", "Lilu"],
+      "dependencies": [
+        "VirtualSMC",
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -74,7 +82,10 @@
       "plistPath": "Contents/Info.plist",
       "priority": 13,
       "required": false,
-      "dependencies": ["VirtualSMC", "Lilu"],
+      "dependencies": [
+        "VirtualSMC",
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": "",
       "laptopOnly": true
@@ -90,7 +101,27 @@
       "plistPath": "Contents/Info.plist",
       "priority": 14,
       "required": false,
-      "dependencies": ["VirtualSMC", "Lilu"],
+      "dependencies": [
+        "VirtualSMC",
+        "Lilu"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "CpuTscSync",
+      "name": "CpuTscSync",
+      "category": "core",
+      "description": "Syncs TSC on firmware that leaves IA32_TSC_ADJUST desynced (Dell T5810/T7910 C612). Required on Monterey and newer to prevent Non-monotonic time panics. Depends on Lilu.",
+      "github": "acidanthera/CpuTscSync",
+      "bundlePath": "CpuTscSync.kext",
+      "executablePath": "Contents/MacOS/CpuTscSync",
+      "plistPath": "Contents/Info.plist",
+      "priority": 5,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -105,7 +136,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 20,
       "required": true,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -120,8 +153,12 @@
       "plistPath": "Contents/Info.plist",
       "priority": 21,
       "required": false,
-      "dependencies": ["Lilu"],
-      "conflictsWith": ["WhateverGreen"],
+      "dependencies": [
+        "Lilu"
+      ],
+      "conflictsWith": [
+        "WhateverGreen"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -136,8 +173,12 @@
       "plistPath": "Contents/Info.plist",
       "priority": 22,
       "required": false,
-      "dependencies": ["Lilu"],
-      "conflictsWith": ["WhateverGreen"],
+      "dependencies": [
+        "Lilu"
+      ],
+      "conflictsWith": [
+        "WhateverGreen"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -152,7 +193,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 30,
       "required": true,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -257,7 +300,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 52,
       "required": false,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "21.0.0",
       "maxKernel": ""
     },
@@ -272,7 +317,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 60,
       "required": false,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -287,7 +334,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 61,
       "required": false,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -302,7 +351,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 62,
       "required": false,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -332,7 +383,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 71,
       "required": false,
-      "dependencies": ["USBToolBox"],
+      "dependencies": [
+        "USBToolBox"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -363,7 +416,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 81,
       "required": false,
-      "dependencies": ["VoodooPS2Controller"],
+      "dependencies": [
+        "VoodooPS2Controller"
+      ],
       "minKernel": "",
       "maxKernel": ""
     },
@@ -378,7 +433,9 @@
       "plistPath": "Contents/Info.plist",
       "priority": 85,
       "required": false,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": "",
       "laptopOnly": true
@@ -394,10 +451,327 @@
       "plistPath": "Contents/Info.plist",
       "priority": 86,
       "required": false,
-      "dependencies": ["Lilu"],
+      "dependencies": [
+        "Lilu"
+      ],
       "minKernel": "",
       "maxKernel": "",
       "laptopOnly": true
+    },
+    {
+      "id": "XHCI-unsupported",
+      "name": "XHCI-unsupported",
+      "category": "usb",
+      "description": "Enables Intel XHCI USB 3 on chipsets Apple never shipped (X99/C612). Often the difference between installer USB working and 'waiting for root device'.",
+      "github": "Sniki/OS-X-USB-Inject-All",
+      "bundlePath": "XHCI-unsupported.kext",
+      "executablePath": "",
+      "plistPath": "Contents/Info.plist",
+      "priority": 69,
+      "required": false,
+      "dependencies": [],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "USBInjectAll",
+      "name": "USBInjectAll",
+      "category": "usb",
+      "description": "Temporary USB port injector for mapping. Do not leave this enabled next to a finished USBMap/UTBMap.",
+      "github": "Sniki/OS-X-USB-Inject-All",
+      "bundlePath": "USBInjectAll.kext",
+      "executablePath": "Contents/MacOS/USBInjectAll",
+      "plistPath": "Contents/Info.plist",
+      "priority": 72,
+      "required": false,
+      "dependencies": [],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "AppleMCEReporterDisabler",
+      "name": "AppleMCEReporterDisabler",
+      "category": "utilities",
+      "description": "Disables AppleMCEReporter on dual-socket Xeon / MacPro7,1 spoofs so the kernel does not panic probing a second socket.",
+      "github": "CeeJayDK/AppleMCEReporterDisabler",
+      "bundlePath": "AppleMCEReporterDisabler.kext",
+      "executablePath": "",
+      "plistPath": "Contents/Info.plist",
+      "priority": 63,
+      "required": false,
+      "dependencies": [],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "AirportBrcmFixup",
+      "name": "AirportBrcmFixup",
+      "category": "wifi",
+      "description": "Patches Broadcom/Fenvi Wi-Fi (BCM4360 and friends) so AirDrop, Continuity, and country-code work.",
+      "github": "acidanthera/AirportBrcmFixup",
+      "bundlePath": "AirportBrcmFixup.kext",
+      "executablePath": "Contents/MacOS/AirportBrcmFixup",
+      "plistPath": "Contents/Info.plist",
+      "priority": 53,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "BrcmFirmwareData",
+      "name": "BrcmFirmwareData",
+      "category": "bluetooth",
+      "description": "Injects Broadcom Bluetooth firmware from the kext (needed with BrcmPatchRAM3).",
+      "github": "acidanthera/BrcmPatchRAM",
+      "bundlePath": "BrcmFirmwareData.kext",
+      "executablePath": "Contents/MacOS/BrcmFirmwareData",
+      "plistPath": "Contents/Info.plist",
+      "priority": 54,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "BrcmPatchRAM3",
+      "name": "BrcmPatchRAM3",
+      "category": "bluetooth",
+      "description": "Loads Broadcom Bluetooth firmware on Catalina and newer. Pair with BrcmFirmwareData and BlueToolFixup on Monterey+.",
+      "github": "acidanthera/BrcmPatchRAM",
+      "bundlePath": "BrcmPatchRAM3.kext",
+      "executablePath": "Contents/MacOS/BrcmPatchRAM3",
+      "plistPath": "Contents/Info.plist",
+      "priority": 55,
+      "required": false,
+      "dependencies": [
+        "Lilu",
+        "BrcmFirmwareData"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "itlwm",
+      "name": "itlwm",
+      "category": "wifi",
+      "description": "Intel Wi-Fi as a Heliport/IO80211 client (not native Airport). Use AirportItlwm instead if you want Control Center Wi-Fi.",
+      "github": "OpenIntelWireless/itlwm",
+      "bundlePath": "itlwm.kext",
+      "executablePath": "Contents/MacOS/itlwm",
+      "plistPath": "Contents/Info.plist",
+      "priority": 49,
+      "required": false,
+      "dependencies": [],
+      "conflictsWith": [
+        "AirportItlwm"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "IntelBTPatcher",
+      "name": "IntelBTPatcher",
+      "category": "bluetooth",
+      "description": "Patches the Intel Bluetooth stack on Monterey and newer. Load with IntelBluetoothFirmware and BlueToolFixup.",
+      "github": "OpenIntelWireless/IntelBluetoothFirmware",
+      "bundlePath": "IntelBTPatcher.kext",
+      "executablePath": "Contents/MacOS/IntelBTPatcher",
+      "plistPath": "Contents/Info.plist",
+      "priority": 51,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
+      "minKernel": "21.0.0",
+      "maxKernel": ""
+    },
+    {
+      "id": "IntelLucy",
+      "name": "IntelLucy",
+      "category": "ethernet",
+      "description": "Acidanthera driver for Intel I225 / I226 2.5GbE controllers.",
+      "github": "acidanthera/IntelLucy",
+      "bundlePath": "IntelLucy.kext",
+      "executablePath": "Contents/MacOS/IntelLucy",
+      "plistPath": "Contents/Info.plist",
+      "priority": 44,
+      "required": false,
+      "dependencies": [],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "AppleIGC",
+      "name": "AppleIGC",
+      "category": "ethernet",
+      "description": "Alternate Intel I225 / I226 driver used on some Z590/Z690 boards when IntelLucy is not a fit.",
+      "github": "donatengit/AppleIGC",
+      "bundlePath": "AppleIGC.kext",
+      "executablePath": "Contents/MacOS/AppleIGC",
+      "plistPath": "Contents/Info.plist",
+      "priority": 45,
+      "required": false,
+      "dependencies": [],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "FeatureUnlock",
+      "name": "FeatureUnlock",
+      "category": "utilities",
+      "description": "Unlocks Continuity / Sidecar / AirPlay / NightShift on SMBIOS combinations Apple would otherwise refuse.",
+      "github": "acidanthera/FeatureUnlock",
+      "bundlePath": "FeatureUnlock.kext",
+      "executablePath": "Contents/MacOS/FeatureUnlock",
+      "plistPath": "Contents/Info.plist",
+      "priority": 64,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "HibernationFixup",
+      "name": "HibernationFixup",
+      "category": "utilities",
+      "description": "Hibernate / standby fixes for hackintoshes. Leave off until sleep is being tested.",
+      "github": "acidanthera/HibernationFixup",
+      "bundlePath": "HibernationFixup.kext",
+      "executablePath": "Contents/MacOS/HibernationFixup",
+      "plistPath": "Contents/Info.plist",
+      "priority": 65,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "CryptexFixup",
+      "name": "CryptexFixup",
+      "category": "utilities",
+      "description": "Lets Ventura+ cryptexes load on CPUs without required instruction sets (Haswell and some HEDT).",
+      "github": "acidanthera/CryptexFixup",
+      "bundlePath": "CryptexFixup.kext",
+      "executablePath": "Contents/MacOS/CryptexFixup",
+      "plistPath": "Contents/Info.plist",
+      "priority": 6,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "AMFIPass",
+      "name": "AMFIPass",
+      "category": "utilities",
+      "description": "AMFI bypass used with OpenCore Legacy Patcher / root patches. Not needed for a clean Sequoia install on supported GPUs.",
+      "github": "dortania/OpenCore-Legacy-Patcher",
+      "bundlePath": "AMFIPass.kext",
+      "executablePath": "Contents/MacOS/AMFIPass",
+      "plistPath": "Contents/Info.plist",
+      "priority": 66,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "CPUFriend",
+      "name": "CPUFriend",
+      "category": "utilities",
+      "description": "Frequency-vector injection for Intel power management. Needs a generated CPUFriendDataProvider. Do not combine with AMD DummyPowerManagement.",
+      "github": "acidanthera/CPUFriend",
+      "bundlePath": "CPUFriend.kext",
+      "executablePath": "Contents/MacOS/CPUFriend",
+      "plistPath": "Contents/Info.plist",
+      "priority": 15,
+      "required": false,
+      "dependencies": [
+        "Lilu"
+      ],
+      "minKernel": "",
+      "maxKernel": "",
+      "intelOnly": true
+    },
+    {
+      "id": "VoodooI2C",
+      "name": "VoodooI2C",
+      "category": "input",
+      "description": "I2C HID / Precision trackpad stack for laptops. Pair with the matching satellite (VoodooI2CHID).",
+      "github": "VoodooI2C/VoodooI2C",
+      "bundlePath": "VoodooI2C.kext",
+      "executablePath": "Contents/MacOS/VoodooI2C",
+      "plistPath": "Contents/Info.plist",
+      "priority": 82,
+      "required": false,
+      "dependencies": [],
+      "minKernel": "",
+      "maxKernel": "",
+      "laptopOnly": true
+    },
+    {
+      "id": "VoodooI2CHID",
+      "name": "VoodooI2CHID",
+      "category": "input",
+      "description": "HID satellite for VoodooI2C. Required for most modern laptop precision trackpads.",
+      "github": "VoodooI2C/VoodooI2C",
+      "bundlePath": "VoodooI2CHID.kext",
+      "executablePath": "Contents/MacOS/VoodooI2CHID",
+      "plistPath": "Contents/Info.plist",
+      "priority": 83,
+      "required": false,
+      "dependencies": [
+        "VoodooI2C"
+      ],
+      "minKernel": "",
+      "maxKernel": "",
+      "laptopOnly": true
+    },
+    {
+      "id": "RealtekCardReader",
+      "name": "RealtekCardReader",
+      "category": "storage",
+      "description": "Realtek USB/PCIe SD card readers (RTS5227/522A/525A/5260 and similar).",
+      "github": "0xFireWolf/RealtekCardReader",
+      "bundlePath": "RealtekCardReader.kext",
+      "executablePath": "Contents/MacOS/RealtekCardReader",
+      "plistPath": "Contents/Info.plist",
+      "priority": 67,
+      "required": false,
+      "dependencies": [],
+      "minKernel": "",
+      "maxKernel": ""
+    },
+    {
+      "id": "TSCAdjustReset",
+      "name": "TSCAdjustReset",
+      "category": "core",
+      "description": "Older TSC reset used on some X299 boards. Dell T5810/T7910 should use CpuTscSync instead.",
+      "github": "interferenc/TSCAdjustReset",
+      "bundlePath": "TSCAdjustReset.kext",
+      "executablePath": "Contents/MacOS/TSCAdjustReset",
+      "plistPath": "Contents/Info.plist",
+      "priority": 5,
+      "required": false,
+      "dependencies": [],
+      "conflictsWith": [
+        "CpuTscSync"
+      ],
+      "minKernel": "",
+      "maxKernel": ""
     }
   ]
 }

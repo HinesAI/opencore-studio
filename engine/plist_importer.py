@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import plistlib
+import re
 from pathlib import Path
 from typing import Any
 
@@ -40,11 +41,25 @@ def _guess_profile(pl: dict[str, Any], kext_ids: list[str], boot_args: str) -> s
     emulate = pl.get("Kernel", {}).get("Emulate", {}) or {}
     quirks = pl.get("Kernel", {}).get("Quirks", {}) or {}
     model = str(pl.get("PlatformInfo", {}).get("Generic", {}).get("SystemProductName", ""))
+    cpuid = emulate.get("Cpuid1Data") or b""
+    if isinstance(cpuid, str):
+        try:
+            cpuid = bytes.fromhex(re.sub(r"[^0-9A-Fa-f]", "", cpuid) or "")
+        except ValueError:
+            cpuid = b""
+    elif not isinstance(cpuid, (bytes, bytearray)):
+        cpuid = b""
+    else:
+        cpuid = bytes(cpuid)
 
     if amd_patch or emulate.get("DummyPowerManagement"):
         if "NootedRed" in kext_ids:
             return "amd_apu_nooted"
         return "amd_ryzen_zen3_4"
+    if cpuid.startswith(bytes.fromhex("C30603")):
+        return "intel_haswell_e"
+    if cpuid.startswith(bytes.fromhex("D40603")):
+        return "intel_broadwell_e"
     if "CpuTopologyRebuild" in kext_ids or "-wegnoigpu" in args:
         return "intel_alder_raptor"
     if quirks.get("AppleXcpmExtraMsrs") and model in ("MacPro7,1", "iMacPro1,1"):
@@ -111,6 +126,7 @@ def import_config_plist(xml_text: str) -> dict[str, Any]:
         "uuid": generic.get("SystemUUID") or "",
         "rom": _hex_bytes(generic.get("ROM")),
     }
+    emulate = ((pl.get("Kernel") or {}).get("Emulate") or {})
 
     studio = {
         "profileId": _guess_profile(pl, kext_ids, boot_args),
@@ -128,6 +144,11 @@ def import_config_plist(xml_text: str) -> dict[str, Any]:
             e.get("Path") for e in (pl.get("ACPI") or {}).get("Add") or [] if e.get("Enabled", True)
         ],
         "amdPatches": bool(pl.get("Kernel", {}).get("Patch")),
+        "kernelEmulate": {
+            "Cpuid1Data": _hex_bytes(emulate.get("Cpuid1Data")),
+            "Cpuid1Mask": _hex_bytes(emulate.get("Cpuid1Mask")),
+            "DummyPowerManagement": bool(emulate.get("DummyPowerManagement")),
+        },
     }
 
     return {

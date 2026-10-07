@@ -13,6 +13,7 @@
   "mandatorySsdt": [
     {"name": "SSDT-PLUG.aml", "reason": "X86PlatformPlugin CPU power management for ACPI Processor objects."},
     {"name": "SSDT-EC-USBX.aml", "reason": "Fake Embedded Controller plus USB power properties."},
+    {"name": "SSDT-RTC0-RANGE.aml", "reason": "Required for Big Sur and newer so C422 RTC is compatible."},
     {"name": "SSDT-UNC.aml", "reason": "Fixes uncore PCI bridges on many C422 / X299 boards that otherwise stall boot."}
   ],
   "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "NVMeFix", "USBToolBox", "UTBMap"],

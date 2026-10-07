@@ -2,9 +2,20 @@
 
 A native macOS studio for building and revising OpenCore `config.plist` files, then assembling an EFI folder you can copy to a USB stick.
 
-**Current release:** 1.1.0 (Beta-2)
+**Current release:** 1.2.0
 
 Type a CPU (W-2133, i7-10700K, 5900X), pick a GPU family, choose kexts and SMBIOS, and Studio writes a Sample.plist-based config instead of a hand-edited XML tree. Load an existing `config.plist` to keep editing.
+
+## What’s new in 1.2.0
+
+- The last hardware profile, kexts, drivers, SSDTs, and related choices are restored when you reopen the app.
+- The Kexts step lists known kexts, UEFI drivers, compiled SSDTs, and ACPI patches so you can add or exclude items before you build.
+- Load your own `.aml` files or an ACPI zip. Those files override downloaded copies. Firmware dump tables (DSDT, OEM `SSDT-0`, APIC, firmware HPET, and similar) are stored for reference and are never injected.
+- Haswell-E and Broadwell-E (X99 / C612) profiles include Dortania-required CPUID spoofing, SSDTs, SecureBootModel Disabled, and the USB / vector quirks those boards need. Dell Precision T5810 / T7910 class machines are covered.
+- Enabling SSDT-HPET also enables the `_CRS` → `XCRS`, TMR IRQ 0, and RTC IRQ 8 patches.
+- Dual-socket T7910 SSDT sources and compiled tables are included (`data/t7910-acpi/ssdt/`). `SSDT-X99-USBX` from single-socket T5810 builds is left off when `SSDT-EC-USBX` is present, so OpenCore does not call a missing `DTGP` method.
+- Copying EFI onto a USB stick replaces `EFI/BOOT` and `EFI/OC` and leaves other EFI folders (including Apple and Windows) in place.
+- App icon, plus reference notes under `repo/` for profiles, kexts, drivers, and common boards.
 
 **Requires:** macOS with Python 3 and Xcode Command Line Tools. No pip packages.
 
@@ -40,7 +51,9 @@ First launch seeds Application Support, then asks which OpenCore version to appl
 | `app.py` | Zero-dependency Python API + static UI |
 | `engine/` | Plist build/import, hardware match, kexts, SMBIOS, EFI, USB, updater |
 | `static/` | Dark studio UI (HTML / CSS / JS) |
-| `data/` | Sample.plist, AMD patches, CPU/GPU catalogs, hardware profiles |
+| `data/` | Sample.plist, AMD patches, CPU/GPU catalogs, hardware profiles, SSDT/driver/patch catalogs |
+| `data/t7910-acpi/ssdt/` | Dual-socket Dell T7910 SSDT sources and compiled `.aml` |
+| `repo/` | Profile, kext, SSDT, and board notes (not a Dortania replacement) |
 | `macos-native/` | AppKit + WKWebView host and `Info.plist` (bundle version) |
 | `build-macos-native.sh` | Sync into the `.app` and compile Swift |
 

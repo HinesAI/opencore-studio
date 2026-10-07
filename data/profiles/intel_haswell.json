@@ -23,12 +23,17 @@
     "SetupVirtualMap": true
   },
   "kernelQuirks": {
-    "AppleCpuPmCfgLock": true,
+    "AppleCpuPmCfgLock": false,
     "AppleXcpmCfgLock": true,
     "DisableIoMapper": true,
     "DisableLinkeditJettison": true,
     "PanicNoKextDump": true,
     "PowerTimeoutKernelPanic": true
+  },
+  "uefiQuirks": {
+    "IgnoreInvalidFlexRatio": true,
+    "RequestBootVarRouting": true,
+    "UnblockFsConnect": false
   },
   "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1"
 }

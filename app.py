@@ -21,12 +21,16 @@ from engine.macos_catalog import list_macos_installers
 from engine.macos_downloader import cancel_download, download_status, remove_partial, start_download
 from engine.macos_usb import start_macos_usb, usb_job_status
 from engine.hardware import gpu_apply_plan, list_gpus, match_cpu, match_gpu
+from engine.drivers import load_driver_catalog
+from engine.acpi_patches import load_acpi_patch_catalog
+from engine.ssdts import ingest_pending_acpi, ingest_user_acpi_files, load_ssdt_catalog, remove_user_ssdt
 from engine.kext_manager import (
     add_custom_repo,
     load_kext_catalog,
     load_repos_config,
 )
 from engine.plist_builder import build_config_plist
+from engine.smbios import generate_smbios
 from engine.plist_importer import import_config_bytes, import_config_plist, import_pending_plist
 from engine.profiles import (
     get_profile,
@@ -34,7 +38,7 @@ from engine.profiles import (
     import_profile_from_url,
     list_profiles,
 )
-from engine.smbios import generate_smbios
+from engine.studio_session import clear_studio_session, load_studio_session, save_studio_session
 from engine.updater import apply_updates, check_updates, local_status, rollback_updates
 from engine.usb_writer import copy_efi_to_volume, list_usb_targets, prepare_usb_and_copy
 from engine.troubleshooter import list_symptoms, run_troubleshoot
@@ -109,9 +113,31 @@ class OpenCoreStudioHandler(SimpleHTTPRequestHandler):
                 self._send_json({"success": False, "error": f"Profile '{pid}' not found"}, status=404)
             return
 
+        if path == "/api/session":
+            try:
+                self._send_json(load_studio_session())
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
         if path == "/api/kexts":
             catalog = load_kext_catalog()
             self._send_json({"success": True, "kexts": catalog})
+            return
+
+        if path == "/api/drivers":
+            catalog = load_driver_catalog()
+            self._send_json({"success": True, "drivers": catalog})
+            return
+
+        if path == "/api/ssdts":
+            catalog = load_ssdt_catalog()
+            self._send_json({"success": True, "ssdts": catalog})
+            return
+
+        if path == "/api/acpi-patches":
+            catalog = load_acpi_patch_catalog()
+            self._send_json({"success": True, "patches": catalog})
             return
 
         if path == "/api/gpus":
@@ -238,6 +264,20 @@ class OpenCoreStudioHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
 
+        if path == "/api/session":
+            try:
+                self._send_json(save_studio_session(self._read_json_body()))
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
+        if path == "/api/session/clear":
+            try:
+                self._send_json(clear_studio_session())
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
         if path == "/api/generate-smbios":
             body = self._read_json_body()
             model = body.get("model", "iMac20,1")
@@ -302,6 +342,29 @@ class OpenCoreStudioHandler(SimpleHTTPRequestHandler):
             try:
                 res = rollback_updates()
                 self._send_json(res, status=200 if res.get("success") else 400)
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
+        if path == "/api/ssdts/upload":
+            body = self._read_json_body()
+            try:
+                self._send_json(ingest_user_acpi_files(body.get("files") or []))
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
+        if path == "/api/ssdts/remove":
+            body = self._read_json_body()
+            try:
+                self._send_json(remove_user_ssdt(str(body.get("name") or "")))
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=500)
+            return
+
+        if path == "/api/ssdts/ingest-pending":
+            try:
+                self._send_json(ingest_pending_acpi())
             except Exception as e:
                 self._send_json({"success": False, "error": str(e)}, status=500)
             return

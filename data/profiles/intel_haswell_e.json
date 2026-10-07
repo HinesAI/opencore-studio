@@ -1,35 +1,88 @@
 {
   "id": "intel_haswell_e",
-  "name": "Intel Haswell-E / Broadwell-E (HEDT)",
+  "name": "Intel Haswell-E / Haswell-EP (X99 / C612)",
   "platform": "desktop",
   "architecture": "Intel",
-  "cpuFamily": "Core i7 5xxxX / 6xxxX and Xeon E5 v3/v4",
-  "chipsets": ["X99"],
-  "examples": ["i7-5820K", "i7-5930K", "i7-6800K", "E5-1650 v3"],
-  "searchTerms": ["x99", "haswell-e", "broadwell-e", "hedt"],
-  "description": "X99 HEDT / Xeon E5. No consumer iGPU. Use iMacPro1,1 and a discrete GPU.",
+  "cpuFamily": "Haswell-E / Haswell-EP (Core i7 58xx/59xxX and Xeon E5 v3)",
+  "chipsets": ["X99", "C612"],
+  "examples": ["i7-5820K", "i7-5930K", "i7-5960X", "E5-1650 v3", "E5-2699 v3"],
+  "searchTerms": ["x99", "c612", "haswell-e", "haswell-ep", "hedt", "t7910", "e5 v3"],
+  "description": "X99 / C612 HEDT and dual-socket Xeon E5 v3. No consumer iGPU. XCPM needs the Haswell CPUID spoof. Dell T5810/T7910 BIOS also needs CpuTscSync.kext (OpenCore 1.0.x does not ship ResetTSCAdjust.efi) or Monterey+ panics with non-monotonic time. Use iMacPro1,1 and a discrete GPU.",
   "recommendedSmbios": {"default": "iMacPro1,1"},
   "supportedMacOs": {"min": "macOS 10.13 High Sierra", "max": "macOS 15 Sequoia"},
+  "dortaniaGuide": "https://dortania.github.io/OpenCore-Install-Guide/config-HEDT/haswell-e.html",
   "mandatorySsdt": [
-    {"name": "SSDT-PLUG.aml", "reason": "CPU power management."},
-    {"name": "SSDT-EC-USBX.aml", "reason": "Fake EC and USB power."}
+    {"name": "SSDT-PLUG.aml", "reason": "Native X86PlatformPlugin CPU power management on Haswell and newer."},
+    {"name": "SSDT-EC-USBX.aml", "reason": "Fake Embedded Controller plus USB power properties (Dortania desktop)."},
+    {"name": "SSDT-EC.aml", "reason": "Separate fake EC used by the known-working Dell T5810/T7910 EFI."},
+    {"name": "SSDT-HPET.aml", "reason": "IRQ conflict fix (HPET) from the known-working Dell X99 ACPI set."},
+    {"name": "SSDT-SBUS-MCHC.aml", "reason": "Adds SMBus / MCHC so AppleSMBus attaches on X99."},
+    {"name": "SSDT-RTC0-RANGE.aml", "reason": "Required for Big Sur and newer so the X99/C612 RTC range is compatible."},
+    {"name": "SSDT-UNC.aml", "reason": "Required for Big Sur and newer so uncore PCI bridges enumerate instead of stalling boot."}
   ],
-  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "USBToolBox", "UTBMap"],
+  "acpiPatches": ["hpet-crs-xcrs", "tmr-irq-0", "rtc-irq-8"],
+  "recommendedKexts": ["Lilu", "VirtualSMC", "SMCProcessor", "SMCSuperIO", "WhateverGreen", "AppleALC", "IntelMausi", "CpuTscSync", "XHCI-unsupported", "USBToolBox", "UTBMap"],
+  "mandatoryKexts": ["CpuTscSync"],
   "booterQuirks": {
     "AvoidRuntimeDefrag": true,
-    "DevirtualiseMmio": true,
+    "DevirtualiseMmio": false,
     "EnableSafeModeSlide": true,
     "EnableWriteUnprotector": true,
     "ProvideCustomSlide": true,
-    "SetupVirtualMap": true
+    "RebuildAppleMemoryMap": false,
+    "SetupVirtualMap": true,
+    "SyncRuntimePermissions": false
   },
   "kernelQuirks": {
-    "AppleCpuPmCfgLock": true,
+    "AppleCpuPmCfgLock": false,
     "AppleXcpmCfgLock": true,
     "AppleXcpmExtraMsrs": true,
     "DisableIoMapper": true,
     "DisableLinkeditJettison": true,
-    "PanicNoKextDump": true
+    "PanicNoKextDump": true,
+    "PowerTimeoutKernelPanic": true
   },
-  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1"
+  "kernelEmulate": {
+    "Cpuid1Data": "C3060300 00000000 00000000 00000000",
+    "Cpuid1Mask": "FFFFFFFF 00000000 00000000 00000000",
+    "DummyPowerManagement": false,
+    "MinKernel": "",
+    "MaxKernel": ""
+  },
+  "uefiQuirks": {
+    "IgnoreInvalidFlexRatio": true,
+    "RequestBootVarRouting": true,
+    "UnblockFsConnect": false,
+    "TscSyncTimeout": 500000,
+    "ReleaseUsbOwnership": false,
+    "EnableVectorAcceleration": false
+  },
+  "miscSecurity": {
+    "SecureBootModel": "Disabled"
+  },
+  "nvram": {
+    "LegacyOverwrite": true,
+    "WriteFlash": false
+  },
+  "miscBoot": {
+    "HideAuxiliary": false
+  },
+  "bootNotes": [
+    "CpuTscSync.kext is required on Dell T5810/T7910. OpenCore 1.0.x does not ship ResetTSCAdjust.efi, so listing that driver would halt boot. CpuTscSync resets IA32_TSC_ADJUST on Monterey and newer (non-monotonic time panic) and again after sleep.",
+    "UEFI TscSyncTimeout is also set so cores sync before the kernel starts.",
+    "OpenCore text picker: Reset NVRAM is listed because HideAuxiliary is off. If you do not see it, press Spacebar, then choose Reset NVRAM; the machine reboots.",
+    "After Reset NVRAM, boot the Sequoia installer again.",
+    "Sequoia install on this Dell X99: SecureBootModel = Disabled (not Default), ReleaseUsbOwnership = False, EnableVectorAcceleration = False. Leave BIOS alone; change the EFI.",
+    "cpus=1 is only a diagnostic. The profile default does not include it — add it from the boot-args chips if you need a single-core test, then remove it.",
+    "T7910 is dual-socket; do not keep T5810-generated EC/HPET/PLUG/RTC0-RANGE. On Kexts → ACPI SSDTs, load the .aml files (or zip) from SSDTTime on this machine, or T7910_ACPI_via_Clover.zip. Your files override the downloaded T5810 copies. Do not inject DSDT.aml or OEM SSDT-0/1 tables.",
+    "Do not enable SSDT-X99-USBX.aml with the T7910 SSDTs. It calls DTGP from the old T5810 SBUS table and panics with AE_NOT_FOUND. SSDT-EC-USBX already provides USB power properties."
+  ],
+  "recommendedBootArgs": "-v keepsyms=1 debug=0x100 alcid=1",
+  "gpuGuidance": {
+    "igpu": {"supported": false, "name": "None", "warning": "Haswell-E / Xeon E5 v3 has no consumer iGPU. Choose a supported AMD dGPU."}
+  },
+  "biosSettings": {
+    "disable": ["Fast Boot", "Secure Boot", "Serial/COM Port", "CSM", "Intel SGX", "CFG Lock"],
+    "enable": ["VT-x", "Above 4G Decoding", "Hyper-Threading", "XHCI Hand-off", "AHCI"]
+  }
 }

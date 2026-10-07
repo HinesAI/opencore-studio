@@ -1,4 +1,5 @@
 .DS_Store
+._*
 __pycache__/
 *.py[cod]
 .venv/
@@ -19,6 +20,13 @@ data/cache/
 data/builds/
 data/backups/
 data/first-run.json
+data/studio-session.json
+data/export-config.plist
+data/user-ssdts/
+data/pending-acpi/
+data/t7910-acpi/*.aml
+data/t7910-acpi/*.dsl
+data/t7910-acpi/._*
 share/
 sync-share.sh
 MACPRO-TAKEOVER-CONTEXT.txt
